@@ -9,6 +9,9 @@ import {
   Sparkles,
   KeyRound,
   Inbox,
+  UserPlus,
+  LogIn,
+  AlertCircle,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { mojoAuth } from '../services/mojoauth';
@@ -32,18 +35,21 @@ const COUNTRIES = [
 ];
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
+  // Mode: Sign In or Create Account
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login');
   const [step, setStep] = useState<'input' | 'otp' | 'security_check' | 'profile'>('input');
   const [authMethod, setAuthMethod] = useState<'email' | 'phone'>('email');
 
-  // Email state
+  // Input states
   const [email, setEmail] = useState('');
-
-  // Phone state
-  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [selectedCountry, setSelectedCountry] = useState(COUNTRIES[0]);
   const [destinationDisplay, setDestinationDisplay] = useState('');
 
-  // OTP state
+  // Target existing user if logging in
+  const [existingUser, setExistingUser] = useState<UserProfile | null>(null);
+
+  // OTP states
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [otpStateId, setOtpStateId] = useState('');
   const [simulatedCode, setSimulatedCode] = useState<string | null>(null);
@@ -55,7 +61,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [isCheckingSecurity, setIsCheckingSecurity] = useState(false);
   const [pinInput, setPinInput] = useState('');
 
-  // Profile setup state
+  // Profile setup state (for new accounts)
   const [fullName, setFullName] = useState('');
   const [aboutStatus, setAboutStatus] = useState('Hey there! I am using WhatsApp.');
   const [avatarSeed, setAvatarSeed] = useState(Math.random().toString(36).substring(2, 7));
@@ -73,23 +79,55 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     return () => clearInterval(interval);
   }, [step, resendTimer]);
 
-  // Step 1: Send OTP via MojoAuth (Email or Phone)
+  const getCleanIdentifier = () => {
+    if (authMethod === 'email') {
+      return email.trim().toLowerCase();
+    } else {
+      const cleanNum = phoneNumber.replace(/\D/g, '');
+      return cleanNum ? `${selectedCountry.code} ${cleanNum}` : '';
+    }
+  };
+
+  // Step 1: Send OTP with Account Existence Detection
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
+    const identifier = getCleanIdentifier();
+
+    if (!identifier) {
+      setErrorMsg(authMethod === 'email' ? 'Please enter a valid email address.' : 'Please enter a valid phone number.');
+      return;
+    }
+
+    if (authMethod === 'email' && (!identifier.includes('@') || !identifier.includes('.'))) {
+      setErrorMsg('Please enter a valid email address.');
+      return;
+    }
+
+    // Check account existence
+    const found = supabaseData.findAccount(identifier);
+
+    if (authMode === 'login') {
+      if (!found) {
+        setErrorMsg('No WhatsApp account found with this email. Please switch to "Create Account" to sign up.');
+        return;
+      }
+      setExistingUser(found);
+    } else {
+      // signup mode
+      if (found) {
+        setErrorMsg('An account already exists for this email! Please switch to "Sign In" to log in.');
+        return;
+      }
+      setExistingUser(null);
+    }
+
+    setDestinationDisplay(identifier);
     setIsVerifying(true);
 
     try {
       if (authMethod === 'email') {
-        const cleanEmail = email.trim().toLowerCase();
-        if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
-          setErrorMsg('Please enter a valid email address.');
-          setIsVerifying(false);
-          return;
-        }
-
-        setDestinationDisplay(cleanEmail);
-        const res = await mojoAuth.sendEmailOtp(cleanEmail);
+        const res = await mojoAuth.sendEmailOtp(identifier);
         if (res.success && res.stateId) {
           setOtpStateId(res.stateId);
           setSimulatedCode(res.simulatedCode || null);
@@ -99,16 +137,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           setErrorMsg(res.message || 'Failed to send OTP to email.');
         }
       } else {
-        const cleanNum = phoneNumber.replace(/\D/g, '');
-        if (cleanNum.length < 7) {
-          setErrorMsg('Please enter a valid phone number.');
-          setIsVerifying(false);
-          return;
-        }
-
-        const formatted = `${selectedCountry.code} ${cleanNum}`;
-        setDestinationDisplay(formatted);
-        const res = await mojoAuth.sendPhoneOtp(formatted);
+        const res = await mojoAuth.sendPhoneOtp(identifier);
         if (res.success && res.stateId) {
           setOtpStateId(res.stateId);
           setSimulatedCode(res.simulatedCode || null);
@@ -132,12 +161,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     updated[index] = digit;
     setOtpDigits(updated);
 
-    // Auto-advance
     if (digit && index < 5) {
       otpInputsRef.current[index + 1]?.focus();
     }
 
-    // Auto verify if all filled
     if (digit && index === 5 && updated.every((d) => d !== '')) {
       handleVerifyOtp(updated.join(''));
     }
@@ -169,9 +196,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     try {
       const isValid = await mojoAuth.verifyOtp(otpStateId, code);
       if (isValid) {
-        if (security.isPasskeyRequired() || security.isTwoStepEnabled()) {
-          setStep('security_check');
+        // If logging into an existing account:
+        if (authMode === 'login' && existingUser) {
+          // Check if passkey or PIN is required for this existing account
+          if (security.isPasskeyRequired() || security.isTwoStepEnabled()) {
+            setStep('security_check');
+          } else {
+            // Log in directly to the existing account!
+            supabaseData.setCurrentUser(existingUser);
+            try {
+              confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+            } catch {}
+            onSuccess(existingUser);
+          }
         } else {
+          // Creating brand new account: proceed to profile setup
           setStep('profile');
         }
       } else {
@@ -184,14 +223,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Step 3: Handle Security Check (Passkey / PIN)
+  // Step 3: Security Check (Passkey / PIN) for Existing Accounts
   const handleVerifyPasskey = async () => {
     setIsCheckingSecurity(true);
     setErrorMsg(null);
     try {
       const ok = await security.authenticateWithPasskey();
-      if (ok) {
-        setStep('profile');
+      if (ok && existingUser) {
+        supabaseData.setCurrentUser(existingUser);
+        try {
+          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+        } catch {}
+        onSuccess(existingUser);
       } else {
         setErrorMsg('Passkey authentication could not be completed.');
       }
@@ -204,14 +247,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
   const handleVerifyPin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (security.verifyTwoStepPin(pinInput)) {
-      setStep('profile');
+    if (security.verifyTwoStepPin(pinInput) && existingUser) {
+      supabaseData.setCurrentUser(existingUser);
+      try {
+        confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+      } catch {}
+      onSuccess(existingUser);
     } else {
       setErrorMsg('Incorrect 6-digit PIN.');
     }
   };
 
-  // Step 4: Finish Profile Setup & Login
+  // Step 4: Finish Profile Setup & Register New Account
   const handleFinishProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!fullName.trim()) {
@@ -233,6 +280,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       passkeyRegistered: security.getStoredPasskeys().length > 0,
     };
 
+    // Save and register account
     supabaseData.setCurrentUser(newUser);
 
     try {
@@ -245,7 +293,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#efeae2] dark:bg-[#0b141a] p-4 select-none animate-in fade-in duration-300">
       <div className="w-full max-w-md bg-white dark:bg-[#202c33] rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col">
-        {/* Top Green Accent Header */}
+        {/* Top Header */}
         <div className="bg-[#008069] text-white p-6 flex flex-col items-center text-center space-y-2">
           <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-xs">
             <ShieldCheck className="w-8 h-8 text-white" />
@@ -257,26 +305,67 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         </div>
 
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-xl">
-            {errorMsg}
+          <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-xl flex items-start space-x-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="flex-1 leading-relaxed">{errorMsg}</div>
           </div>
         )}
 
         <div className="p-6">
           {/* ============================================================ */}
-          {/* STEP 1: EMAIL / PHONE INPUT */}
+          {/* STEP 1: LOGIN VS SIGNUP + EMAIL / PHONE INPUT */}
           {/* ============================================================ */}
           {step === 'input' && (
-            <form onSubmit={handleSendOtp} className="space-y-5">
-              {/* Login Method Toggle */}
+            <div className="space-y-5">
+              {/* Sign In vs Create Account Toggle */}
               <div className="flex bg-gray-100 dark:bg-[#111b21] p-1 rounded-xl">
                 <button
                   type="button"
-                  onClick={() => { setAuthMethod('email'); setErrorMsg(null); }}
+                  onClick={() => { setAuthMode('login'); setErrorMsg(null); }}
                   className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
-                    authMethod === 'email'
+                    authMode === 'login'
                       ? 'bg-white dark:bg-[#202c33] text-[#00a884] shadow-xs'
                       : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('signup'); setErrorMsg(null); }}
+                  className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                    authMode === 'signup'
+                      ? 'bg-white dark:bg-[#202c33] text-[#00a884] shadow-xs'
+                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                  }`}
+                >
+                  <UserPlus className="w-3.5 h-3.5" />
+                  <span>Create Account</span>
+                </button>
+              </div>
+
+              {/* Title & Description */}
+              <div className="text-center space-y-1">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-base">
+                  {authMode === 'login' ? 'Sign in to your account' : 'Create a new WhatsApp account'}
+                </h3>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  {authMode === 'login'
+                    ? 'Enter your registered email or phone. We will verify your account using a one-time passcode.'
+                    : 'Enter your email or phone to register. Your account will be safeguarded with WebAuthn Passkeys.'}
+                </p>
+              </div>
+
+              {/* Email / Phone Method Toggle */}
+              <div className="flex justify-center space-x-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMethod('email'); setErrorMsg(null); }}
+                  className={`text-xs font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
+                    authMethod === 'email'
+                      ? 'border-[#00a884] text-[#00a884]'
+                      : 'border-transparent text-gray-400 hover:text-gray-600'
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
@@ -285,10 +374,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   type="button"
                   onClick={() => { setAuthMethod('phone'); setErrorMsg(null); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                  className={`text-xs font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
                     authMethod === 'phone'
-                      ? 'bg-white dark:bg-[#202c33] text-[#00a884] shadow-xs'
-                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                      ? 'border-[#00a884] text-[#00a884]'
+                      : 'border-transparent text-gray-400 hover:text-gray-600'
                   }`}
                 >
                   <Phone className="w-3.5 h-3.5" />
@@ -296,99 +385,99 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 </button>
               </div>
 
-              <div className="text-center space-y-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  {authMethod === 'email' ? 'Enter your email address' : 'Enter your phone number'}
-                </h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
-                  {authMethod === 'email' ? (
-                    <>
-                      WhatsApp will send a secure one-time passcode to your <span className="font-semibold text-gray-800 dark:text-gray-200">mail</span> via MojoAuth.
-                    </>
-                  ) : (
-                    <>
-                      WhatsApp will send an OTP via <span className="font-semibold text-gray-800 dark:text-gray-200">MojoAuth</span> to verify your phone number.
-                    </>
-                  )}
-                </p>
-              </div>
-
-              {/* Email Input */}
-              {authMethod === 'email' ? (
-                <div className="space-y-2">
-                  <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                    Email Address
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="email"
-                      required
-                      autoFocus
-                      placeholder="alex.miller@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
-                    />
-                    <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
-                  </div>
-                </div>
-              ) : (
-                /* Phone Input */
-                <div className="space-y-4">
-                  <div className="space-y-2">
+              {/* Input Form */}
+              <form onSubmit={handleSendOtp} className="space-y-4">
+                {authMethod === 'email' ? (
+                  <div className="space-y-1.5">
                     <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                      Country / Region
+                      Email Address
                     </label>
-                    <select
-                      value={selectedCountry.name}
-                      onChange={(e) => {
-                        const c = COUNTRIES.find((x) => x.name === e.target.value);
-                        if (c) setSelectedCountry(c);
-                      }}
-                      className="w-full py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
-                    >
-                      {COUNTRIES.map((c) => (
-                        <option key={c.name} value={c.name}>
-                          {c.flag} {c.name} ({c.code})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                      Phone Number
-                    </label>
-                    <div className="flex space-x-2">
-                      <div className="py-2.5 px-3 bg-gray-100 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300">
-                        {selectedCountry.code}
-                      </div>
+                    <div className="relative">
                       <input
-                        type="tel"
-                        placeholder="555 123 4567"
-                        value={phoneNumber}
-                        onChange={(e) => setPhoneNumber(e.target.value)}
-                        className="flex-1 py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                        type="email"
+                        required
+                        autoFocus
+                        placeholder="srijesh@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                       />
+                      <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                        Country
+                      </label>
+                      <select
+                        value={selectedCountry.name}
+                        onChange={(e) => {
+                          const c = COUNTRIES.find((x) => x.name === e.target.value);
+                          if (c) setSelectedCountry(c);
+                        }}
+                        className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                      >
+                        {COUNTRIES.map((c) => (
+                          <option key={c.name} value={c.name}>
+                            {c.flag} {c.name} ({c.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-              <button
-                type="submit"
-                disabled={isVerifying}
-                className="w-full py-3 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all disabled:opacity-50"
-              >
-                {authMethod === 'email' ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
-                <span>{isVerifying ? 'Sending MojoAuth OTP...' : authMethod === 'email' ? 'Send OTP to Mail' : 'Next'}</span>
-              </button>
+                    <div className="space-y-1">
+                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                        Phone Number
+                      </label>
+                      <div className="flex space-x-2">
+                        <div className="py-2.5 px-3 bg-gray-100 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          {selectedCountry.code}
+                        </div>
+                        <input
+                          type="tel"
+                          placeholder="555 123 4567"
+                          value={phoneNumber}
+                          onChange={(e) => setPhoneNumber(e.target.value)}
+                          className="flex-1 py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
-              <div className="pt-2 text-center text-[11px] text-gray-400 flex items-center justify-center space-x-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-[#00a884]" />
-                <span>Protected against SIM swap & account takeover</span>
+                <button
+                  type="submit"
+                  disabled={isVerifying}
+                  className="w-full py-3 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all disabled:opacity-50"
+                >
+                  {authMethod === 'email' ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
+                  <span>{isVerifying ? 'Sending MojoAuth OTP...' : authMethod === 'email' ? 'Send OTP to Mail' : 'Continue'}</span>
+                </button>
+              </form>
+
+              {/* Bottom Quick Switch Link */}
+              <div className="text-center pt-1">
+                {authMode === 'login' ? (
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('signup'); setErrorMsg(null); }}
+                    className="text-xs text-[#00a884] hover:underline"
+                  >
+                    Don't have an account yet? Create one
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => { setAuthMode('login'); setErrorMsg(null); }}
+                    className="text-xs text-[#00a884] hover:underline"
+                  >
+                    Already have an account? Sign in
+                  </button>
+                )}
               </div>
-            </form>
+            </div>
           )}
 
           {/* ============================================================ */}
@@ -405,7 +494,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  {authMethod === 'email' ? 'Check your mail' : 'Verifying your number'}
+                  {authMethod === 'email' ? 'Check your mail' : 'Verifying code'}
                 </h3>
                 <div className="w-5" />
               </div>
@@ -546,16 +635,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           )}
 
           {/* ============================================================ */}
-          {/* STEP 4: PROFILE INFO */}
+          {/* STEP 4: PROFILE SETUP (ONLY FOR NEW ACCOUNTS) */}
           {/* ============================================================ */}
           {step === 'profile' && (
             <form onSubmit={handleFinishProfile} className="space-y-5">
               <div className="text-center space-y-1">
                 <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  Profile info
+                  Profile Info
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Please provide your name and optional profile picture.
+                  Set up your name and optional profile avatar.
                 </p>
               </div>
 
@@ -583,7 +672,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   type="text"
                   required
                   autoFocus
-                  placeholder="e.g. Alex Miller"
+                  placeholder="e.g. Srijesh"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
@@ -609,7 +698,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 className="w-full py-3 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Start Messaging</span>
+                <span>Complete Account Setup</span>
               </button>
             </form>
           )}
