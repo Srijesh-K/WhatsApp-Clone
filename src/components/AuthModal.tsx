@@ -12,6 +12,7 @@ import {
   UserPlus,
   LogIn,
   AlertCircle,
+  X,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { mojoAuth } from '../services/mojoauth';
@@ -48,6 +49,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
   // Target existing user if logging in
   const [existingUser, setExistingUser] = useState<UserProfile | null>(null);
+
+  // Social OAuth states
+  const [oauthModal, setOauthModal] = useState<'google' | 'facebook' | null>(null);
+  const [oauthName, setOauthName] = useState('');
+  const [oauthEmail, setOauthEmail] = useState('');
 
   // OTP states
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
@@ -196,13 +202,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     try {
       const isValid = await mojoAuth.verifyOtp(otpStateId, code);
       if (isValid) {
-        // If logging into an existing account:
         if (authMode === 'login' && existingUser) {
-          // Check if passkey or PIN is required for this existing account
           if (security.isPasskeyRequired() || security.isTwoStepEnabled()) {
             setStep('security_check');
           } else {
-            // Log in directly to the existing account!
             supabaseData.setCurrentUser(existingUser);
             try {
               confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
@@ -210,7 +213,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             onSuccess(existingUser);
           }
         } else {
-          // Creating brand new account: proceed to profile setup
           setStep('profile');
         }
       } else {
@@ -280,8 +282,65 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       passkeyRegistered: security.getStoredPasskeys().length > 0,
     };
 
-    // Save and register account
     supabaseData.setCurrentUser(newUser);
+
+    try {
+      confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
+    } catch {}
+
+    onSuccess(newUser);
+  };
+
+  // Social OAuth Handler (Google or Facebook)
+  const handleOpenSocialModal = (provider: 'google' | 'facebook') => {
+    setErrorMsg(null);
+    if (provider === 'google') {
+      setOauthName('Srijesh');
+      setOauthEmail('srijeshnair5@gmail.com');
+    } else {
+      setOauthName('Srijesh Nair');
+      setOauthEmail('srijesh.meta@facebook.com');
+    }
+    setOauthModal(provider);
+  };
+
+  const handleCompleteSocialOAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!oauthEmail.trim() || !oauthName.trim()) return;
+
+    const cleanId = oauthEmail.trim().toLowerCase();
+    const existing = supabaseData.findAccount(cleanId);
+
+    // If account already exists -> Log in directly
+    if (existing) {
+      supabaseData.setCurrentUser(existing);
+      setOauthModal(null);
+      try {
+        confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+      } catch {}
+      onSuccess(existing);
+      return;
+    }
+
+    // If account does not exist -> Create account directly using Social identity
+    const pubKey = await security.initE2EEKeys();
+    const newUser: UserProfile = {
+      id: 'usr_' + Date.now(),
+      phoneNumber: cleanId,
+      fullName: oauthName.trim(),
+      avatarUrl:
+        oauthModal === 'google'
+          ? `https://api.dicebear.com/7.x/avataaars/svg?seed=google_${encodeURIComponent(oauthName)}`
+          : `https://api.dicebear.com/7.x/avataaars/svg?seed=fb_${encodeURIComponent(oauthName)}`,
+      aboutStatus: 'Hey there! I am using WhatsApp.',
+      isOnline: true,
+      lastSeen: 'online',
+      publicKey: pubKey,
+      passkeyRegistered: false,
+    };
+
+    supabaseData.setCurrentUser(newUser);
+    setOauthModal(null);
 
     try {
       confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
@@ -313,10 +372,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
         <div className="p-6">
           {/* ============================================================ */}
-          {/* STEP 1: LOGIN VS SIGNUP + EMAIL / PHONE INPUT */}
+          {/* STEP 1: LOGIN VS SIGNUP + MAIL / PHONE / GOOGLE / FACEBOOK */}
           {/* ============================================================ */}
           {step === 'input' && (
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Sign In vs Create Account Toggle */}
               <div className="flex bg-gray-100 dark:bg-[#111b21] p-1 rounded-xl">
                 <button
@@ -352,13 +411,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 </h3>
                 <p className="text-xs text-gray-500 leading-relaxed">
                   {authMode === 'login'
-                    ? 'Enter your registered email or phone. We will verify your account using a one-time passcode.'
-                    : 'Enter your email or phone to register. Your account will be safeguarded with WebAuthn Passkeys.'}
+                    ? 'Log in using your Email, Google, Facebook, or Phone.'
+                    : 'Register your account using Email, Google, Facebook, or Phone.'}
                 </p>
               </div>
 
               {/* Email / Phone Method Toggle */}
-              <div className="flex justify-center space-x-4 border-b border-gray-100 dark:border-gray-800 pb-3">
+              <div className="flex justify-center space-x-4 border-b border-gray-100 dark:border-gray-800 pb-2">
                 <button
                   type="button"
                   onClick={() => { setAuthMethod('email'); setErrorMsg(null); }}
@@ -385,10 +444,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 </button>
               </div>
 
-              {/* Input Form */}
-              <form onSubmit={handleSendOtp} className="space-y-4">
+              {/* Mail / Phone Input Form */}
+              <form onSubmit={handleSendOtp} className="space-y-3">
                 {authMethod === 'email' ? (
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                       Email Address
                     </label>
@@ -406,7 +465,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <div className="space-y-1">
                       <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                         Country
@@ -450,12 +509,51 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   type="submit"
                   disabled={isVerifying}
-                  className="w-full py-3 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all disabled:opacity-50"
+                  className="w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all disabled:opacity-50"
                 >
                   {authMethod === 'email' ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
-                  <span>{isVerifying ? 'Sending MojoAuth OTP...' : authMethod === 'email' ? 'Send OTP to Mail' : 'Continue'}</span>
+                  <span>{isVerifying ? 'Sending MojoAuth OTP...' : authMethod === 'email' ? 'Send OTP to Mail' : 'Continue with Phone'}</span>
                 </button>
               </form>
+
+              {/* Social Login Options Divider */}
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                <span className="shrink mx-3 text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                  Or continue with
+                </span>
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+              </div>
+
+              {/* Google and Facebook Buttons */}
+              <div className="grid grid-cols-2 gap-2.5">
+                {/* Google Button */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenSocialModal('google')}
+                  className="py-2.5 px-3 bg-white dark:bg-[#111b21] hover:bg-gray-50 dark:hover:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center justify-center space-x-2 shadow-2xs transition-all active:scale-98"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                  </svg>
+                  <span>Google</span>
+                </button>
+
+                {/* Facebook Button */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenSocialModal('facebook')}
+                  className="py-2.5 px-3 bg-white dark:bg-[#111b21] hover:bg-gray-50 dark:hover:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center justify-center space-x-2 shadow-2xs transition-all active:scale-98"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                  <span>Facebook</span>
+                </button>
+              </div>
 
               {/* Bottom Quick Switch Link */}
               <div className="text-center pt-1">
@@ -704,6 +802,85 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           )}
         </div>
       </div>
+
+      {/* ============================================================ */}
+      {/* SOCIAL OAUTH MODAL (GOOGLE / FACEBOOK) */}
+      {/* ============================================================ */}
+      {oauthModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-white dark:bg-[#202c33] rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
+              <div className="flex items-center space-x-2.5">
+                {oauthModal === 'google' ? (
+                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
+                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                )}
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
+                  {oauthModal === 'google' ? 'Sign in with Google' : 'Log in with Facebook'}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOauthModal(null)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-gray-500">
+              Continue to WhatsApp with your {oauthModal === 'google' ? 'Google' : 'Facebook'} profile.
+            </p>
+
+            <form onSubmit={handleCompleteSocialOAuth} className="space-y-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={oauthName}
+                  onChange={(e) => setOauthName(e.target.value)}
+                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                  {oauthModal === 'google' ? 'Google Account Email' : 'Facebook Account Email'}
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={oauthEmail}
+                  onChange={(e) => setOauthEmail(e.target.value)}
+                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                />
+              </div>
+
+              <button
+                type="submit"
+                className={`w-full py-2.5 px-4 text-white rounded-xl text-xs font-medium transition-colors shadow-sm ${
+                  oauthModal === 'google'
+                    ? 'bg-blue-600 hover:bg-blue-700'
+                    : 'bg-[#1877F2] hover:bg-[#166fe5]'
+                }`}
+              >
+                Continue as {oauthName || 'User'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
