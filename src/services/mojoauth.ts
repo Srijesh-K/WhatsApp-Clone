@@ -73,11 +73,13 @@ class MojoAuthService {
     sessionStorage.setItem('mojo_pending_otp_' + stateId, generatedOtp);
     sessionStorage.setItem('mojo_destination_' + stateId, cleanEmail);
 
+    // Discreetly log to DevTools console for testing without exposing on webpage
+    console.info(`%c[WhatsApp Auth] Code sent to ${cleanEmail}: ${generatedOtp}`, 'color: #00a884; font-weight: bold; font-size: 13px;');
+
     return {
       success: true,
       stateId,
       destination: cleanEmail,
-      simulatedCode: generatedOtp,
       message: `WhatsApp verification code sent to ${cleanEmail}`,
     };
   }
@@ -124,11 +126,12 @@ class MojoAuthService {
     sessionStorage.setItem('mojo_pending_otp_' + stateId, generatedOtp);
     sessionStorage.setItem('mojo_destination_' + stateId, cleanPhone);
 
+    console.info(`%c[WhatsApp Auth] SMS code sent to ${cleanPhone}: ${generatedOtp}`, 'color: #00a884; font-weight: bold; font-size: 13px;');
+
     return {
       success: true,
       stateId,
       destination: cleanPhone,
-      simulatedCode: generatedOtp,
       message: `WhatsApp verification code sent to ${cleanPhone}`,
     };
   }

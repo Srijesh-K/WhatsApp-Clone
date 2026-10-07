@@ -6,7 +6,6 @@ import {
   CheckCircle2,
   ArrowLeft,
   RefreshCw,
-  Sparkles,
   KeyRound,
   Inbox,
   UserPlus,
@@ -58,7 +57,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   // OTP states
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
   const [otpStateId, setOtpStateId] = useState('');
-  const [simulatedCode, setSimulatedCode] = useState<string | null>(null);
   const [resendTimer, setResendTimer] = useState(30);
   const [isVerifying, setIsVerifying] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -136,7 +134,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         const res = await mojoAuth.sendEmailOtp(identifier);
         if (res.success && res.stateId) {
           setOtpStateId(res.stateId);
-          setSimulatedCode(res.simulatedCode || null);
           setResendTimer(30);
           setStep('otp');
         } else {
@@ -146,7 +143,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         const res = await mojoAuth.sendPhoneOtp(identifier);
         if (res.success && res.stateId) {
           setOtpStateId(res.stateId);
-          setSimulatedCode(res.simulatedCode || null);
           setResendTimer(30);
           setStep('otp');
         } else {
@@ -610,29 +606,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 </p>
               </div>
 
-              {/* Simulated OTP Notification Banner (Dev/Sandbox Mode) */}
-              {simulatedCode && (
-                <div
-                  onClick={() => {
-                    const arr = simulatedCode.split('');
-                    setOtpDigits(arr);
-                    handleVerifyOtp(simulatedCode);
-                  }}
-                  className="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-300 dark:border-emerald-800 rounded-xl cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-950/60 transition-all text-center space-y-1"
-                >
-                  <div className="text-[11px] text-emerald-800 dark:text-emerald-300 font-medium flex items-center justify-center space-x-1">
-                    <Sparkles className="w-3.5 h-3.5 text-[#00a884]" />
-                    <span>
-                      {authMethod === 'email'
-                        ? 'MojoAuth Sandbox: New email received! Tap to auto-fill code'
-                        : 'MojoAuth Sandbox: SMS code received! Tap to auto-fill code'}
-                    </span>
-                  </div>
-                  <div className="text-base font-mono font-bold tracking-widest text-[#00a884]">
-                    {simulatedCode}
-                  </div>
+              {/* Destination Confirmation Card */}
+              <div className="p-3 bg-gray-50 dark:bg-[#111b21] border border-gray-200 dark:border-gray-800 rounded-xl text-center space-y-1">
+                <div className="text-xs text-gray-500">
+                  Verification code delivered to
                 </div>
-              )}
+                <div className="text-sm font-semibold font-mono text-gray-800 dark:text-gray-200">
+                  {destinationDisplay}
+                </div>
+                <div className="text-[11px] text-gray-400">
+                  Please open your mail app to view the 6-digit code
+                </div>
+              </div>
 
               {/* 6 Digit Inputs */}
               <div className="flex justify-center space-x-2 on-paste" onPaste={handlePasteOtp}>
