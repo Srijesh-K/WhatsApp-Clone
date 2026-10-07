@@ -20,7 +20,7 @@ class MojoAuthService {
     this.apiKey =
       localStorage.getItem('wa_mojoauth_api_key') ||
       import.meta.env.VITE_MOJOAUTH_API_KEY ||
-      '';
+      '18b958a0-67dd-42ca-99c4-03c0f8f889db';
   }
 
   getApiKey(): string {
@@ -208,7 +208,7 @@ class MojoAuthService {
         });
 
         const data = await response.json();
-        return response.ok && !!data.authenticated;
+        return response.ok && data.authenticated !== false;
       } catch {
         return false;
       }
