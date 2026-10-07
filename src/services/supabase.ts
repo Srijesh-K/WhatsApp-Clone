@@ -108,6 +108,10 @@ class SupabaseDataService {
     }
   }
 
+  getClient(): SupabaseClient | null {
+    return this.client;
+  }
+
   getSupabaseConfig() {
     return {
       url: localStorage.getItem('wa_supabase_url') || '',
