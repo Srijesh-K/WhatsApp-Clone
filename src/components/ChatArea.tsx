@@ -19,6 +19,8 @@ import {
   Image as ImageIcon,
   FileText,
   X,
+  User,
+  VolumeX,
 } from 'lucide-react';
 import { supabaseData } from '../services/supabase';
 import type { Conversation, ChatMessage, UserProfile } from '../services/supabase';
@@ -47,6 +49,7 @@ export const ChatArea: FC<ChatAreaProps> = ({
   const [inputText, setInputText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 
   // Voice recording state
@@ -62,6 +65,32 @@ export const ChatArea: FC<ChatAreaProps> = ({
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const chatMenuRef = useRef<HTMLDivElement>(null);
+  const emojiPickerRef = useRef<HTMLDivElement>(null);
+  const attachMenuRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicks outside dropdowns & popups so clicking the other side closes them
+  useEffect(() => {
+    if (!chatMenuOpen && !showEmojiPicker && !showAttachMenu) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (chatMenuOpen && chatMenuRef.current && !chatMenuRef.current.contains(target)) {
+        setChatMenuOpen(false);
+      }
+      if (showEmojiPicker && emojiPickerRef.current && !emojiPickerRef.current.contains(target)) {
+        setShowEmojiPicker(false);
+      }
+      if (showAttachMenu && attachMenuRef.current && !attachMenuRef.current.contains(target)) {
+        setShowAttachMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [chatMenuOpen, showEmojiPicker, showAttachMenu]);
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -228,13 +257,92 @@ export const ChatArea: FC<ChatAreaProps> = ({
           >
             <Lock className="w-4 h-4" />
           </button>
-          <button
-            onClick={onOpenContactInfo}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Contact Info"
-          >
-            <MoreVertical className="w-5 h-5" />
-          </button>
+          {/* 3-Dots Menu Dropdown */}
+          <div className="relative" ref={chatMenuRef}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setChatMenuOpen((prev) => !prev);
+              }}
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="Menu"
+            >
+              <MoreVertical className="w-5 h-5" />
+            </button>
+
+            {chatMenuOpen && (
+              <>
+                {/* Transparent backdrop so clicking the other side closes the menu immediately */}
+                <div
+                  className="fixed inset-0 z-40 bg-transparent"
+                  onClick={() => setChatMenuOpen(false)}
+                />
+                <div
+                  className="absolute right-0 top-11 w-56 bg-white dark:bg-[#233138] rounded-xl shadow-xl py-2 border border-gray-200 dark:border-gray-700 z-50 animate-in fade-in zoom-in-95 duration-100 text-sm text-gray-700 dark:text-gray-200"
+                  onClick={() => setChatMenuOpen(false)}
+                >
+                  <button
+                    onClick={onOpenContactInfo}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <User className="w-4 h-4 text-gray-500" />
+                    <span>Contact info</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      supabaseData.toggleMute(conversation.id);
+                    }}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <VolumeX className="w-4 h-4 text-gray-500" />
+                    <span>{conversation.isMuted ? 'Unmute notifications' : 'Mute notifications'}</span>
+                  </button>
+                  <button
+                    onClick={onOpenSafetyNumber}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <Lock className="w-4 h-4 text-[#00a884]" />
+                    <span>Verify encryption code</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      const next = conversation.disappearingDuration > 0 ? 0 : 86400;
+                      supabaseData.setDisappearingDuration(conversation.id, next);
+                    }}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    <span>
+                      {conversation.disappearingDuration > 0
+                        ? 'Disappearing messages: On'
+                        : 'Disappearing messages: Off'}
+                    </span>
+                  </button>
+                  <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                  <button
+                    onClick={() => {
+                      if (window.confirm('Clear all messages in this chat?')) {
+                        supabaseData.clearChatMessages(conversation.id);
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] text-red-500"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Clear chat messages</span>
+                  </button>
+                  {onBackMobile && (
+                    <button
+                      onClick={onBackMobile}
+                      className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                    >
+                      <X className="w-4 h-4 text-gray-500" />
+                      <span>Close chat</span>
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -482,45 +590,63 @@ export const ChatArea: FC<ChatAreaProps> = ({
 
       {/* 4. ATTACHMENT POPUP */}
       {showAttachMenu && (
-        <div className="absolute bottom-18 left-14 bg-white dark:bg-[#233138] rounded-2xl shadow-xl p-3 border border-gray-200 dark:border-gray-700 z-30 flex flex-col space-y-2 animate-in fade-in zoom-in-95 duration-150">
-          <button
-            onClick={handleSendMockImage}
-            className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#182229] text-xs font-medium text-gray-800 dark:text-gray-200"
+        <>
+          <div
+            className="fixed inset-0 z-20 bg-transparent"
+            onClick={() => setShowAttachMenu(false)}
+          />
+          <div
+            ref={attachMenuRef}
+            className="absolute bottom-18 left-14 bg-white dark:bg-[#233138] rounded-2xl shadow-xl p-3 border border-gray-200 dark:border-gray-700 z-30 flex flex-col space-y-2 animate-in fade-in zoom-in-95 duration-150"
           >
-            <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center">
-              <ImageIcon className="w-4 h-4" />
-            </div>
-            <span>Photos & Videos</span>
-          </button>
-          <button
-            onClick={handleSendMockDocument}
-            className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#182229] text-xs font-medium text-gray-800 dark:text-gray-200"
-          >
-            <div className="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">
-              <FileText className="w-4 h-4" />
-            </div>
-            <span>Document</span>
-          </button>
-        </div>
+            <button
+              onClick={handleSendMockImage}
+              className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#182229] text-xs font-medium text-gray-800 dark:text-gray-200"
+            >
+              <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center">
+                <ImageIcon className="w-4 h-4" />
+              </div>
+              <span>Photos & Videos</span>
+            </button>
+            <button
+              onClick={handleSendMockDocument}
+              className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#182229] text-xs font-medium text-gray-800 dark:text-gray-200"
+            >
+              <div className="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">
+                <FileText className="w-4 h-4" />
+              </div>
+              <span>Document</span>
+            </button>
+          </div>
+        </>
       )}
 
       {/* 5. EMOJI PICKER POPUP */}
       {showEmojiPicker && (
-        <div className="absolute bottom-18 left-4 bg-white dark:bg-[#233138] rounded-2xl shadow-xl p-3 border border-gray-200 dark:border-gray-700 z-30 grid grid-cols-7 gap-2 animate-in fade-in zoom-in-95 duration-150">
-          {EMOJIS.map((emoji) => (
-            <button
-              key={emoji}
-              onClick={() => {
-                setInputText((prev) => prev + emoji);
-                setShowEmojiPicker(false);
-                inputRef.current?.focus();
-              }}
-              className="text-xl p-1.5 hover:bg-gray-100 dark:hover:bg-[#182229] rounded-lg transition-transform hover:scale-125"
-            >
-              {emoji}
-            </button>
-          ))}
-        </div>
+        <>
+          <div
+            className="fixed inset-0 z-20 bg-transparent"
+            onClick={() => setShowEmojiPicker(false)}
+          />
+          <div
+            ref={emojiPickerRef}
+            className="absolute bottom-18 left-4 bg-white dark:bg-[#233138] rounded-2xl shadow-xl p-3 border border-gray-200 dark:border-gray-700 z-30 grid grid-cols-7 gap-2 animate-in fade-in zoom-in-95 duration-150"
+          >
+            {EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                onClick={() => {
+                  setInputText((prev) => prev + emoji);
+                  setShowEmojiPicker(false);
+                  inputRef.current?.focus();
+                }}
+                className="text-xl p-1.5 hover:bg-gray-100 dark:hover:bg-[#182229] rounded-lg transition-transform hover:scale-125"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        </>
       )}
 
       {/* 6. BOTTOM INPUT / VOICE RECORDER BAR */}

@@ -87,11 +87,11 @@ class SupabaseDataService {
   private listeners: (() => void)[] = [];
 
   constructor() {
-    // Purge any legacy dummy chats from previous demo sessions
+    // Purge any legacy dummy chats and active session on load so login page is always required on link load
     localStorage.removeItem('wa_chats');
     localStorage.removeItem('wa_chat_messages');
+    localStorage.removeItem('wa_current_user');
     this.initClient();
-    this.loadUserStore();
   }
 
   // Initialize Supabase client
@@ -153,24 +153,14 @@ class SupabaseDataService {
     localStorage.setItem('wa_registered_accounts', JSON.stringify(accounts));
   }
 
-  // Current logged in user
+  // Current logged in user (in-memory for active session)
   getCurrentUser(): UserProfile | null {
-    if (!this.currentUser) {
-      const stored = localStorage.getItem('wa_current_user');
-      if (stored) {
-        try {
-          this.currentUser = JSON.parse(stored);
-          this.loadUserStore();
-        } catch {}
-      }
-    }
     return this.currentUser;
   }
 
   setCurrentUser(user: UserProfile) {
     this.currentUser = user;
     this.saveAccount(user);
-    localStorage.setItem('wa_current_user', JSON.stringify(user));
     this.loadUserStore();
     this.notify();
   }
@@ -356,6 +346,38 @@ class SupabaseDataService {
       this.saveUserStore();
       this.notify();
     }
+  }
+
+  // Mute / Unmute
+  toggleMute(conversationId: string) {
+    const conv = this.conversations.find((c) => c.id === conversationId);
+    if (conv) {
+      conv.isMuted = !conv.isMuted;
+      this.saveUserStore();
+      this.notify();
+    }
+  }
+
+  // Clear all messages in a chat
+  clearChatMessages(conversationId: string) {
+    if (this.messages[conversationId]) {
+      this.messages[conversationId] = [];
+      const conv = this.conversations.find((c) => c.id === conversationId);
+      if (conv) {
+        conv.lastMessage = '';
+        conv.lastMessageTime = '';
+      }
+      this.saveUserStore();
+      this.notify();
+    }
+  }
+
+  // Delete conversation completely
+  deleteConversation(conversationId: string) {
+    this.conversations = this.conversations.filter((c) => c.id !== conversationId);
+    delete this.messages[conversationId];
+    this.saveUserStore();
+    this.notify();
   }
 
   // Create new conversation with a real person (email or phone)

@@ -96,12 +96,18 @@ export function App() {
   const activeConversation = conversations.find((c) => c.id === activeChatId);
   const currentMessages = activeChatId ? supabaseData.getMessages(activeChatId) : [];
 
-  // If user is not logged in, show AuthModal
+  // If user is not logged in, always show AuthModal on initial page load / link open
   if (!currentUser) {
     return (
       <AuthModal
         onSuccess={(user) => {
+          supabaseData.setCurrentUser(user);
           setCurrentUser(user);
+          const list = supabaseData.getConversations();
+          setConversations(list);
+          if (list.length > 0) {
+            setActiveChatId(list[0].id);
+          }
         }}
       />
     );
@@ -140,6 +146,7 @@ export function App() {
           onLogout={() => {
             supabaseData.logout();
             setCurrentUser(null);
+            setActiveChatId(null);
           }}
         />
 

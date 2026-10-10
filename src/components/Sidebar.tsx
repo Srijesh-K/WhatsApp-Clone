@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   MessageSquarePlus,
   MoreVertical,
@@ -46,6 +46,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'unread' | 'groups'>('all');
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside / other side
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   // Filter conversations
   const filtered = conversations.filter((c) => {
@@ -107,9 +124,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
 
           {/* Menu Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setMenuOpen(!menuOpen)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setMenuOpen((prev) => !prev);
+              }}
               className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
               title="Menu"
             >
@@ -117,47 +137,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
 
             {menuOpen && (
-              <div
-                className="absolute right-0 top-11 w-56 bg-white dark:bg-[#233138] rounded-xl shadow-xl py-2 border border-gray-200 dark:border-gray-700 z-50 animate-in fade-in zoom-in-95 duration-100 text-sm text-gray-700 dark:text-gray-200"
-                onClick={() => setMenuOpen(false)}
-              >
-                <button
-                  onClick={onOpenPasskeys}
-                  className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+              <>
+                {/* Transparent backdrop overlay so clicking the other side closes the menu */}
+                <div
+                  className="fixed inset-0 z-40 bg-transparent"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div
+                  className="absolute right-0 top-11 w-56 bg-white dark:bg-[#233138] rounded-xl shadow-xl py-2 border border-gray-200 dark:border-gray-700 z-50 animate-in fade-in zoom-in-95 duration-100 text-sm text-gray-700 dark:text-gray-200"
+                  onClick={() => setMenuOpen(false)}
                 >
-                  <KeyRound className="w-4 h-4 text-[#00a884]" />
-                  <span>Passkeys & Security</span>
-                </button>
-                <button
-                  onClick={onOpenLinkedDevices}
-                  className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
-                >
-                  <Laptop className="w-4 h-4 text-sky-500" />
-                  <span>Linked Devices</span>
-                </button>
-                <button
-                  onClick={onLockApp}
-                  className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
-                >
-                  <Lock className="w-4 h-4 text-amber-500" />
-                  <span>Lock WhatsApp Now</span>
-                </button>
-                <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
-                <button
-                  onClick={onOpenSettings}
-                  className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
-                >
-                  <Settings className="w-4 h-4 text-gray-500" />
-                  <span>Supabase & MojoAuth Settings</span>
-                </button>
-                <button
-                  onClick={onLogout}
-                  className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] text-red-500"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Log out</span>
-                </button>
-              </div>
+                  <button
+                    onClick={onOpenPasskeys}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <KeyRound className="w-4 h-4 text-[#00a884]" />
+                    <span>Passkeys & Security</span>
+                  </button>
+                  <button
+                    onClick={onOpenLinkedDevices}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <Laptop className="w-4 h-4 text-sky-500" />
+                    <span>Linked Devices</span>
+                  </button>
+                  <button
+                    onClick={onLockApp}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <Lock className="w-4 h-4 text-amber-500" />
+                    <span>Lock WhatsApp Now</span>
+                  </button>
+                  <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                  <button
+                    onClick={onOpenSettings}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                  >
+                    <Settings className="w-4 h-4 text-gray-500" />
+                    <span>Supabase & MojoAuth Settings</span>
+                  </button>
+                  <button
+                    onClick={onLogout}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] text-red-500"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>Log out</span>
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>
