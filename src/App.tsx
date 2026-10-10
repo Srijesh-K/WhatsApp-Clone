@@ -15,6 +15,7 @@ import { CallModal } from './components/CallModal';
 import { StatusStoriesModal } from './components/StatusStoriesModal';
 import { SettingsModal } from './components/SettingsModal';
 import { NewChatModal } from './components/NewChatModal';
+import { AdminPanel } from './components/AdminPanel';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => supabaseData.getCurrentUser());
@@ -44,6 +45,33 @@ export function App() {
   const [showSafetyNumber, setShowSafetyNumber] = useState(false);
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [callState, setCallState] = useState<{ active: boolean; isVideo: boolean } | null>(null);
+
+  // Path routing (/admin dedicated page support)
+  const [currentPath, setCurrentPath] = useState<string>(() => {
+    if (typeof window === 'undefined') return '/';
+    return window.location.pathname;
+  });
+
+  useEffect(() => {
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  const navigateTo = (path: string) => {
+    if (window.location.pathname !== path) {
+      window.history.pushState({}, '', path);
+    }
+    setCurrentPath(path);
+  };
+
+  const isAdminRoute =
+    currentPath === '/admin' ||
+    currentPath.startsWith('/admin') ||
+    window.location.hash === '#admin' ||
+    window.location.search.includes('admin');
 
   // Apply dark theme class
   useEffect(() => {
@@ -76,7 +104,7 @@ export function App() {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, []);
 
-  // Global ESC shortcut
+  // Global Keyboard Shortcuts (ESC & Admin Shortcut Ctrl+Shift+A)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -88,13 +116,42 @@ export function App() {
         setShowSafetyNumber(false);
         setShowContactInfo(false);
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'A' || e.key === 'a')) {
+        e.preventDefault();
+        navigateTo(isAdminRoute ? '/' : '/admin');
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isAdminRoute]);
 
   const activeConversation = conversations.find((c) => c.id === activeChatId);
   const currentMessages = activeChatId ? supabaseData.getMessages(activeChatId) : [];
+
+  // ==========================================================================
+  // DEDICATED /admin PAGE ROUTE
+  // ==========================================================================
+  if (isAdminRoute) {
+    return (
+      <AdminPanel
+        isOpen={true}
+        isStandalonePage={true}
+        onClose={() => {
+          navigateTo('/');
+        }}
+        onSwitchUser={(user) => {
+          supabaseData.setCurrentUser(user);
+          setCurrentUser(user);
+          const list = supabaseData.getConversations();
+          setConversations(list);
+          if (list.length > 0) {
+            setActiveChatId(list[0].id);
+          }
+          navigateTo('/');
+        }}
+      />
+    );
+  }
 
   // If user is not logged in, always show AuthModal on initial page load / link open
   if (!currentUser) {
@@ -142,6 +199,7 @@ export function App() {
           onOpenPasskeys={() => setShowPasskeys(true)}
           onOpenLinkedDevices={() => setShowLinkedDevices(true)}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenAdmin={() => navigateTo('/admin')}
           onLockApp={() => setIsLocked(true)}
           onLogout={() => {
             supabaseData.logout();

@@ -32,6 +32,17 @@ This clone is designed with the exact defense-in-depth security model of WhatsAp
    - Inspect all active sessions (OS, browser, IP address, last active).
    - Remote one-tap logout to terminate unauthorized sessions.
 
+7. **Master System Admin Console (`/admin` Dedicated Page)**:
+   - **Dedicated Route**: Accessible at `/admin` (e.g. `http://localhost:5173/admin`) and via the sidebar 3-dots menu.
+   - **Restricted Access Key Gateway**: Protected by a customizable System Access Key (Default: `admin@123`).
+   - **Hidden Security**: Zero hints or autofill shown on login; the login page does not expose any admin controls.
+   - **Whole Users Directory**: View all registered accounts, user IDs, security status, and inspect or edit any user profile.
+   - **User Session Impersonation**: One-click switch to login as any registered user to test and experience their view.
+   - **Global Conversations & Message Inspector**: View all active chats and messages across the entire platform with cryptographic payload status.
+   - **Google Account Verification**: Google OAuth logins dispatch a verification code to the Google email account before entry.
+   - **Supabase Cloud Explorer**: Query and inspect live remote PostgreSQL tables directly.
+   - **Database Backups & Restore**: Download full system JSON backups or restore snapshots.
+
 ---
 
 ## 🚀 Quick Start

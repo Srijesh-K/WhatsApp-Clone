@@ -12,6 +12,7 @@ import {
   KeyRound,
   Settings,
   LogOut,
+  ShieldAlert,
 } from 'lucide-react';
 import { supabaseData } from '../services/supabase';
 import type { Conversation, UserProfile } from '../services/supabase';
@@ -26,6 +27,7 @@ interface SidebarProps {
   onOpenPasskeys: () => void;
   onOpenLinkedDevices: () => void;
   onOpenSettings: () => void;
+  onOpenAdmin: () => void;
   onLockApp: () => void;
   onLogout: () => void;
 }
@@ -40,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onOpenPasskeys,
   onOpenLinkedDevices,
   onOpenSettings,
+  onOpenAdmin,
   onLockApp,
   onLogout,
 }) => {
@@ -175,6 +178,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <Settings className="w-4 h-4 text-gray-500" />
                     <span>Supabase & MojoAuth Settings</span>
+                  </button>
+                  <button
+                    onClick={onOpenAdmin}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] text-emerald-600 dark:text-emerald-400 font-medium"
+                  >
+                    <ShieldAlert className="w-4 h-4 text-[#00a884]" />
+                    <span>System Admin Console</span>
                   </button>
                   <button
                     onClick={onLogout}

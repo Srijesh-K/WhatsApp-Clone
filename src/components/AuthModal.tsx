@@ -55,6 +55,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [oauthModal, setOauthModal] = useState<'google' | 'facebook' | null>(null);
   const [oauthName, setOauthName] = useState('');
   const [oauthEmail, setOauthEmail] = useState('');
+  const [pendingSocialAuth, setPendingSocialAuth] = useState<{
+    provider: 'google' | 'facebook';
+    name: string;
+    email: string;
+  } | null>(null);
 
   // OTP states
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
@@ -217,6 +222,29 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             } catch {}
             onSuccess(existingUser);
           }
+        } else if (pendingSocialAuth) {
+          // If authenticated through Google/Facebook, create account with Google details immediately
+          const pubKey = await security.initE2EEKeys();
+          const newUser: UserProfile = {
+            id: 'usr_' + Date.now(),
+            phoneNumber: destinationDisplay,
+            fullName: pendingSocialAuth.name || 'Google User',
+            avatarUrl:
+              pendingSocialAuth.provider === 'google'
+                ? `https://api.dicebear.com/7.x/avataaars/svg?seed=google_${encodeURIComponent(pendingSocialAuth.name)}`
+                : `https://api.dicebear.com/7.x/avataaars/svg?seed=fb_${encodeURIComponent(pendingSocialAuth.name)}`,
+            aboutStatus: 'Hey there! I am using WhatsApp.',
+            isOnline: true,
+            lastSeen: 'online',
+            publicKey: pubKey,
+            passkeyRegistered: false,
+          };
+
+          supabaseData.setCurrentUser(newUser);
+          try {
+            confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
+          } catch {}
+          onSuccess(newUser);
         } else {
           setStep('profile');
         }
@@ -315,43 +343,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
     const cleanId = oauthEmail.trim().toLowerCase();
     const existing = supabaseData.findAccount(cleanId);
+    const provider = oauthModal || 'google';
 
-    // If account already exists -> Log in directly
+    setPendingSocialAuth({
+      provider,
+      name: oauthName.trim(),
+      email: cleanId,
+    });
+    setDestinationDisplay(cleanId);
+    setEmail(cleanId);
+    setAuthMethod('email');
+
     if (existing) {
-      supabaseData.setCurrentUser(existing);
-      setOauthModal(null);
-      try {
-        confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
-      } catch {}
-      onSuccess(existing);
-      return;
+      setExistingUser(existing);
+      setAuthMode('login');
+    } else {
+      setExistingUser(null);
+      setAuthMode('signup');
+      setFullName(oauthName.trim());
     }
 
-    // If account does not exist -> Create account directly using Social identity
-    const pubKey = await security.initE2EEKeys();
-    const newUser: UserProfile = {
-      id: 'usr_' + Date.now(),
-      phoneNumber: cleanId,
-      fullName: oauthName.trim(),
-      avatarUrl:
-        oauthModal === 'google'
-          ? `https://api.dicebear.com/7.x/avataaars/svg?seed=google_${encodeURIComponent(oauthName)}`
-          : `https://api.dicebear.com/7.x/avataaars/svg?seed=fb_${encodeURIComponent(oauthName)}`,
-      aboutStatus: 'Hey there! I am using WhatsApp.',
-      isOnline: true,
-      lastSeen: 'online',
-      publicKey: pubKey,
-      passkeyRegistered: false,
-    };
-
-    supabaseData.setCurrentUser(newUser);
-    setOauthModal(null);
+    setIsVerifying(true);
+    setErrorMsg(null);
 
     try {
-      confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
-    } catch {}
-
-    onSuccess(newUser);
+      const res = await mojoAuth.sendEmailOtp(cleanId);
+      if (res.success && res.stateId) {
+        setOtpStateId(res.stateId);
+        setIsRealEmailSent(!!res.isRealEmailSent);
+        setResendTimer(30);
+        setOauthModal(null);
+        setStep('otp');
+      } else {
+        setErrorMsg(res.message || `Failed to dispatch verification code to ${provider === 'google' ? 'Google' : 'Facebook'} email.`);
+      }
+    } catch {
+      setErrorMsg(`Unable to dispatch verification code to ${provider === 'google' ? 'Google' : 'Facebook'} account.`);
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const handleSaveQuickConfig = (e: React.FormEvent) => {
@@ -630,17 +660,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   <ArrowLeft className="w-5 h-5" />
                 </button>
                 <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  {authMethod === 'email' ? 'Check your mail' : 'Verifying code'}
+                  {pendingSocialAuth?.provider === 'google'
+                    ? 'Check your Google email'
+                    : authMethod === 'email'
+                    ? 'Check your mail'
+                    : 'Verifying code'}
                 </h3>
                 <div className="w-5" />
               </div>
 
               <div className="flex flex-col items-center space-y-1">
-                {authMethod === 'email' && (
+                {pendingSocialAuth?.provider === 'google' ? (
+                  <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/40 rounded-full flex items-center justify-center mb-1">
+                    <svg className="w-6 h-6" viewBox="0 0 24 24">
+                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
+                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                    </svg>
+                  </div>
+                ) : authMethod === 'email' ? (
                   <div className="w-12 h-12 bg-teal-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-[#00a884] mb-1">
                     <Inbox className="w-6 h-6" />
                   </div>
-                )}
+                ) : null}
                 <p className="text-xs text-gray-500 text-center leading-relaxed">
                   Enter the 6-digit verification code sent to{' '}
                   <span className="font-semibold text-gray-900 dark:text-white">{destinationDisplay}</span>.
@@ -650,7 +693,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               {/* Delivery Status Card */}
               <div className="p-3 bg-gray-50 dark:bg-[#111b21] border border-gray-200 dark:border-gray-800 rounded-xl text-center space-y-1.5">
                 <div className="text-xs text-gray-500">
-                  Verification code sent to
+                  {pendingSocialAuth?.provider === 'google'
+                    ? 'Google Account verification code sent to'
+                    : 'Verification code sent to'}
                 </div>
                 <div className="text-sm font-semibold font-mono text-gray-800 dark:text-gray-200">
                   {destinationDisplay}

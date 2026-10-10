@@ -96,8 +96,14 @@ class SupabaseDataService {
 
   // Initialize Supabase client
   initClient() {
-    const url = localStorage.getItem('wa_supabase_url') || import.meta.env.VITE_SUPABASE_URL;
-    const anonKey = localStorage.getItem('wa_supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY;
+    let url = localStorage.getItem('wa_supabase_url') || import.meta.env.VITE_SUPABASE_URL || '';
+    const anonKey = localStorage.getItem('wa_supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+
+    // Sanitize URL (strip trailing /rest/v1 and trailing slashes)
+    url = url.trim().replace(/\/+$/, '');
+    if (url.endsWith('/rest/v1')) {
+      url = url.replace(/\/rest\/v1$/, '');
+    }
 
     if (url && anonKey) {
       try {
@@ -113,15 +119,24 @@ class SupabaseDataService {
   }
 
   getSupabaseConfig() {
+    let url = localStorage.getItem('wa_supabase_url') || import.meta.env.VITE_SUPABASE_URL || '';
+    url = url.trim().replace(/\/+$/, '');
+    if (url.endsWith('/rest/v1')) {
+      url = url.replace(/\/rest\/v1$/, '');
+    }
     return {
-      url: localStorage.getItem('wa_supabase_url') || '',
-      anonKey: localStorage.getItem('wa_supabase_anon_key') || '',
+      url,
+      anonKey: localStorage.getItem('wa_supabase_anon_key') || import.meta.env.VITE_SUPABASE_ANON_KEY || '',
       isConnected: !!this.client,
     };
   }
 
   setSupabaseConfig(url: string, anonKey: string) {
-    localStorage.setItem('wa_supabase_url', url.trim());
+    let cleanUrl = url.trim().replace(/\/+$/, '');
+    if (cleanUrl.endsWith('/rest/v1')) {
+      cleanUrl = cleanUrl.replace(/\/rest\/v1$/, '');
+    }
+    localStorage.setItem('wa_supabase_url', cleanUrl);
     localStorage.setItem('wa_supabase_anon_key', anonKey.trim());
     this.initClient();
     this.notify();
