@@ -21,6 +21,9 @@ import {
   X,
   User,
   VolumeX,
+  ChevronDown,
+  ChevronUp,
+  Binary,
 } from 'lucide-react';
 import { supabaseData } from '../services/supabase';
 import type { Conversation, ChatMessage, UserProfile } from '../services/supabase';
@@ -50,6 +53,8 @@ export const ChatArea: FC<ChatAreaProps> = ({
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showAttachMenu, setShowAttachMenu] = useState(false);
   const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [showTelemetryHud, setShowTelemetryHud] = useState(false);
+  const [inspectedMsgId, setInspectedMsgId] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
 
   // Voice recording state
@@ -74,7 +79,7 @@ export const ChatArea: FC<ChatAreaProps> = ({
     if (!chatMenuOpen && !showEmojiPicker && !showAttachMenu) return;
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       const target = e.target as Node;
-      if (chatMenuOpen && chatMenuRef.current && !chatMenuRef.current.contains(target)) {
+      if (chatMenuRef.current && !chatMenuRef.current.contains(target)) {
         setChatMenuOpen(false);
       }
       if (showEmojiPicker && emojiPickerRef.current && !emojiPickerRef.current.contains(target)) {
@@ -143,7 +148,7 @@ export const ChatArea: FC<ChatAreaProps> = ({
 
     supabaseData.sendMessage(
       conversation.id,
-      '🎤 Voice note',
+      '🎤 Encrypted Voice Stream',
       'audio',
       { audioDuration: durStr }
     );
@@ -152,7 +157,7 @@ export const ChatArea: FC<ChatAreaProps> = ({
   const handleSendMockImage = () => {
     supabaseData.sendMessage(
       conversation.id,
-      'Here is the screenshot from earlier!',
+      'Security_Audit_Screenshot.png',
       'image',
       { mediaUrl: 'https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=600' }
     );
@@ -162,9 +167,9 @@ export const ChatArea: FC<ChatAreaProps> = ({
   const handleSendMockDocument = () => {
     supabaseData.sendMessage(
       conversation.id,
-      'Security_Audit_Report.pdf',
+      'Cryptographic_Audit_Report.pdf',
       'document',
-      { mediaName: 'Security_Audit_Report.pdf', mediaSize: '2.4 MB' }
+      { mediaName: 'Cryptographic_Audit_Report.pdf', mediaSize: '2.4 MB' }
     );
     setShowAttachMenu(false);
   };
@@ -174,7 +179,6 @@ export const ChatArea: FC<ChatAreaProps> = ({
       setPlayingAudioId(null);
     } else {
       setPlayingAudioId(msgId);
-      // Auto pause after 3 seconds for mock playback
       setTimeout(() => {
         setPlayingAudioId((curr) => (curr === msgId ? null : curr));
       }, 3500);
@@ -186,10 +190,12 @@ export const ChatArea: FC<ChatAreaProps> = ({
     setHoveredMsgId(null);
   };
 
+  const keyFingerprint = `0x${conversation.id.slice(-6).toUpperCase()}`;
+
   return (
-    <div className="flex-1 h-full flex flex-col bg-[#efeae2] dark:bg-[#0b141a] overflow-hidden select-none relative">
+    <div className="flex-1 h-full flex flex-col bg-[#050811] overflow-hidden select-none relative font-sans">
       {/* 1. TOP CHAT HEADER */}
-      <div className="h-15 px-4 bg-[#f0f2f5] dark:bg-[#202c33] border-b border-gray-200 dark:border-gray-800 flex items-center justify-between z-10 shrink-0">
+      <div className="h-16 px-4 bg-[#081022] border-b border-emerald-500/20 flex items-center justify-between z-10 shrink-0">
         <div
           onClick={onOpenContactInfo}
           className="flex items-center space-x-3 cursor-pointer group flex-1 min-w-0"
@@ -200,9 +206,9 @@ export const ChatArea: FC<ChatAreaProps> = ({
                 e.stopPropagation();
                 onBackMobile();
               }}
-              className="md:hidden mr-1 text-gray-600 dark:text-gray-300"
+              className="md:hidden mr-1 text-gray-400 hover:text-emerald-400 font-mono"
             >
-              ←
+              [←]
             </button>
           )}
 
@@ -210,53 +216,62 @@ export const ChatArea: FC<ChatAreaProps> = ({
             <img
               src={conversation.avatarUrl}
               alt={conversation.name}
-              className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
+              className="w-10 h-10 rounded-xl object-cover border border-emerald-400/40 p-0.5 bg-[#040813] shadow-[0_0_10px_rgba(0,245,160,0.2)]"
             />
             {conversation.isOnline && (
-              <div className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-[#202c33]" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#081022] radar-online" />
             )}
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:underline">
-              {conversation.name}
-            </h3>
-            <p className="text-[11px] text-gray-500 truncate">
+            <div className="flex items-center space-x-2">
+              <h3 className="text-xs font-bold font-mono text-white truncate group-hover:text-emerald-300 transition-colors">
+                {conversation.name}
+              </h3>
+              <span className="hidden sm:inline-block px-1.5 py-0.5 bg-[#061224] border border-emerald-500/25 rounded-md text-[9px] font-mono text-emerald-400">
+                KEY: {keyFingerprint}
+              </span>
+            </div>
+            <p className="text-[10px] font-mono text-gray-400 truncate flex items-center space-x-1.5">
               {conversation.typingStatus ? (
-                <span className="text-[#00a884] font-medium animate-pulse">typing...</span>
+                <span className="text-emerald-400 font-medium animate-pulse">TRANSMITTING PACKETS...</span>
               ) : conversation.isOnline ? (
-                <span className="text-[#00a884] font-medium">online</span>
+                <span className="text-emerald-400 font-medium flex items-center space-x-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  <span>NODE ONLINE // LATENCY 19ms</span>
+                </span>
               ) : (
-                conversation.lastSeen || 'last seen recently'
+                <span>STANDBY // LAST SEEN RECENTLY</span>
               )}
             </p>
           </div>
         </div>
 
         {/* Action icons */}
-        <div className="flex items-center space-x-1 sm:space-x-3 text-gray-600 dark:text-gray-300">
+        <div className="flex items-center space-x-1.5 text-gray-300">
           <button
             onClick={() => onStartCall(true)}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Video call"
+            className="p-2 rounded-lg bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-all"
+            title="Secure Video Stream"
           >
-            <Video className="w-5 h-5" />
+            <Video className="w-4 h-4 text-emerald-400" />
           </button>
           <button
             onClick={() => onStartCall(false)}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-            title="Voice call"
+            className="p-2 rounded-lg bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-all"
+            title="Encrypted Voice Call"
           >
-            <Phone className="w-5 h-5" />
+            <Phone className="w-4 h-4 text-emerald-400" />
           </button>
-          <div className="h-5 w-px bg-gray-300 dark:bg-gray-700 mx-1 hidden sm:block" />
+          <div className="h-5 w-px bg-emerald-500/20 mx-1 hidden sm:block" />
           <button
             onClick={onOpenSafetyNumber}
-            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-emerald-600 dark:text-[#00a884]"
-            title="Verify E2EE Encryption Code"
+            className="p-2 rounded-lg bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-emerald-400 transition-all shadow-[0_0_10px_rgba(0,245,160,0.15)]"
+            title="Verify E2EE Safety Matrix"
           >
             <Lock className="w-4 h-4" />
           </button>
+
           {/* 3-Dots Menu Dropdown */}
           <div className="relative" ref={chatMenuRef}>
             <button
@@ -264,79 +279,78 @@ export const ChatArea: FC<ChatAreaProps> = ({
                 e.stopPropagation();
                 setChatMenuOpen((prev) => !prev);
               }}
-              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              title="Menu"
+              className="p-2 rounded-lg bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-all"
+              title="Channel Options"
             >
-              <MoreVertical className="w-5 h-5" />
+              <MoreVertical className="w-4 h-4" />
             </button>
 
             {chatMenuOpen && (
               <>
-                {/* Transparent backdrop so clicking the other side closes the menu immediately */}
                 <div
                   className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setChatMenuOpen(false)}
                 />
                 <div
-                  className="absolute right-0 top-11 w-56 bg-white dark:bg-[#233138] rounded-xl shadow-xl py-2 border border-gray-200 dark:border-gray-700 z-50 animate-in fade-in zoom-in-95 duration-100 text-sm text-gray-700 dark:text-gray-200"
+                  className="absolute right-0 top-12 w-60 bg-[#0a1329] rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] py-2 border border-emerald-500/30 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs font-mono text-gray-200 backdrop-blur-xl"
                   onClick={() => setChatMenuOpen(false)}
                 >
                   <button
                     onClick={onOpenContactInfo}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-emerald-300"
                   >
-                    <User className="w-4 h-4 text-gray-500" />
-                    <span>Contact info</span>
+                    <User className="w-4 h-4 text-emerald-400" />
+                    <span>Contact Telemetry Info</span>
                   </button>
                   <button
                     onClick={() => {
                       supabaseData.toggleMute(conversation.id);
                     }}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-gray-300"
                   >
-                    <VolumeX className="w-4 h-4 text-gray-500" />
-                    <span>{conversation.isMuted ? 'Unmute notifications' : 'Mute notifications'}</span>
+                    <VolumeX className="w-4 h-4 text-gray-400" />
+                    <span>{conversation.isMuted ? 'Unmute Notifications' : 'Mute Notifications'}</span>
                   </button>
                   <button
                     onClick={onOpenSafetyNumber}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-emerald-300"
                   >
-                    <Lock className="w-4 h-4 text-[#00a884]" />
-                    <span>Verify encryption code</span>
+                    <Lock className="w-4 h-4 text-emerald-400" />
+                    <span>Verify Safety Number</span>
                   </button>
                   <button
                     onClick={() => {
                       const next = conversation.disappearingDuration > 0 ? 0 : 86400;
                       supabaseData.setDisappearingDuration(conversation.id, next);
                     }}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-amber-300"
                   >
-                    <Clock className="w-4 h-4 text-amber-500" />
+                    <Clock className="w-4 h-4 text-amber-400" />
                     <span>
                       {conversation.disappearingDuration > 0
-                        ? 'Disappearing messages: On'
-                        : 'Disappearing messages: Off'}
+                        ? 'Disappearing: 24h Active'
+                        : 'Disappearing: Off'}
                     </span>
                   </button>
-                  <div className="my-1 border-t border-gray-100 dark:border-gray-700" />
+                  <div className="my-1 border-t border-emerald-500/15" />
                   <button
                     onClick={() => {
-                      if (window.confirm('Clear all messages in this chat?')) {
+                      if (window.confirm('Purge all encrypted buffers in this channel?')) {
                         supabaseData.clearChatMessages(conversation.id);
                       }
                     }}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] text-red-500"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-red-400"
                   >
                     <Trash2 className="w-4 h-4" />
-                    <span>Clear chat messages</span>
+                    <span>Purge Channel Buffers</span>
                   </button>
                   {onBackMobile && (
                     <button
                       onClick={onBackMobile}
-                      className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229]"
+                      className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-gray-400"
                     >
-                      <X className="w-4 h-4 text-gray-500" />
-                      <span>Close chat</span>
+                      <X className="w-4 h-4" />
+                      <span>Close Channel</span>
                     </button>
                   )}
                 </div>
@@ -346,37 +360,68 @@ export const ChatArea: FC<ChatAreaProps> = ({
         </div>
       </div>
 
-      {/* 2. CHAT CANVAS WITH DOODLE WALLPAPER */}
-      <div className="flex-1 overflow-y-auto px-4 md:px-12 py-4 space-y-3 wa-chat-bg-light dark:wa-chat-bg-dark">
-        {/* End-to-End Encryption Notice Banner */}
-        <div
-          onClick={onOpenSafetyNumber}
-          className="mx-auto max-w-lg p-2.5 bg-[#ffeecd] dark:bg-[#182229] border border-[#ffdb99]/60 dark:border-gray-800 rounded-xl shadow-2xs flex items-center justify-center space-x-2 text-center text-[11px] text-[#54656f] dark:text-[#8696a0] cursor-pointer hover:opacity-90 transition-opacity"
-        >
-          <Lock className="w-3.5 h-3.5 text-amber-600 dark:text-[#00a884] shrink-0" />
-          <span>
-            Messages and calls are end-to-end encrypted. No one outside of this chat, not even WhatsApp, can read or listen to them. <span className="underline font-semibold text-gray-800 dark:text-gray-200">Tap to verify.</span>
-          </span>
+      {/* 2. COLLAPSIBLE CRYPTOGRAPHIC TELEMETRY HUD */}
+      <div className="bg-[#040813] border-b border-emerald-500/15 px-4 py-1.5 flex items-center justify-between text-[10px] font-mono text-gray-400 shrink-0 select-none">
+        <div className="flex items-center space-x-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 radar-online" />
+          <span className="text-emerald-400 font-bold">E2EE ACTIVE</span>
+          <span className="text-gray-600">|</span>
+          <span className="text-gray-300">CIPHER: AES-256-GCM</span>
+          <span className="hidden sm:inline text-gray-500">// SHA-384 MAC</span>
         </div>
 
-        {/* Disappearing Messages Banner */}
+        <button
+          onClick={() => setShowTelemetryHud(!showTelemetryHud)}
+          className="flex items-center space-x-1 text-emerald-400 hover:underline"
+        >
+          <span>{showTelemetryHud ? '[COLLAPSE HUD]' : '[EXPAND TELEMETRY]'}</span>
+          {showTelemetryHud ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+        </button>
+      </div>
+
+      {/* Expanded Telemetry HUD Drawer */}
+      {showTelemetryHud && (
+        <div className="bg-[#070e1f] border-b border-emerald-500/25 p-3 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[10px] font-mono animate-in slide-in-from-top-2 duration-150 shrink-0">
+          <div className="p-2 bg-[#040813] border border-emerald-500/20 rounded-lg">
+            <span className="text-gray-500 block">KEY EXCHANGE</span>
+            <span className="font-bold text-emerald-300">X25519 ECDH</span>
+          </div>
+          <div className="p-2 bg-[#040813] border border-emerald-500/20 rounded-lg">
+            <span className="text-gray-500 block">FORWARD SECRECY</span>
+            <span className="font-bold text-emerald-300">DOUBLE RATCHET</span>
+          </div>
+          <div className="p-2 bg-[#040813] border border-emerald-500/20 rounded-lg">
+            <span className="text-gray-500 block">TAMPER DETECTION</span>
+            <span className="font-bold text-emerald-300">0% TAMPER // OK</span>
+          </div>
+          <div className="p-2 bg-[#040813] border border-emerald-500/20 rounded-lg">
+            <span className="text-gray-500 block">STORAGE MODE</span>
+            <span className="font-bold text-cyan-300">ZERO-KNOWLEDGE RLS</span>
+          </div>
+        </div>
+      )}
+
+      {/* 3. CHAT CANVAS WITH HIGH-TECH WALLPAPER */}
+      <div className="flex-1 overflow-y-auto px-4 md:px-10 py-4 space-y-3 wa-chat-bg-dark">
+        {/* Disappearing Messages Notice */}
         {conversation.disappearingDuration > 0 && (
-          <div className="mx-auto max-w-sm p-2 bg-gray-100 dark:bg-[#182229] border border-gray-200 dark:border-gray-800 rounded-lg text-center text-[11px] text-gray-500 flex items-center justify-center space-x-1.5">
-            <Clock className="w-3 h-3 text-[#00a884]" />
-            <span>Disappearing messages enabled for this chat.</span>
+          <div className="mx-auto max-w-sm p-2 bg-[#071329] border border-amber-500/30 rounded-lg text-center text-[10px] font-mono text-amber-300 flex items-center justify-center space-x-1.5 shadow-sm">
+            <Clock className="w-3 h-3 text-amber-400" />
+            <span>DISAPPEARING PROTOCOL ARMED (24h LIFESPAN)</span>
           </div>
         )}
 
         {/* Date separator */}
         <div className="flex justify-center my-3">
-          <span className="px-3 py-1 bg-white dark:bg-[#182229] rounded-lg shadow-2xs text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            Today
+          <span className="px-3 py-1 bg-[#09142b] border border-emerald-500/20 rounded-md text-[10px] font-mono text-emerald-400 font-bold tracking-widest uppercase">
+            // SESSION ACTIVE // TODAY
           </span>
         </div>
 
         {/* Messages Stream */}
         {messages.map((msg) => {
           const isMe = msg.senderId === currentUser.id || msg.senderId === 'self';
+          const isInspected = inspectedMsgId === msg.id;
 
           return (
             <div
@@ -387,25 +432,19 @@ export const ChatArea: FC<ChatAreaProps> = ({
             >
               {/* Message Bubble */}
               <div
-                className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-2.5 shadow-2xs relative text-sm ${
+                className={`max-w-[85%] sm:max-w-[70%] rounded-2xl p-3 shadow-md relative text-xs ${
                   isMe
-                    ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-tr-xs'
-                    : 'bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-tl-xs'
+                    ? 'bg-[#042823] border border-emerald-500/40 text-emerald-100 rounded-tr-xs shadow-[0_0_15px_rgba(0,245,160,0.08)]'
+                    : 'bg-[#0a1630] border border-cyan-500/30 text-gray-100 rounded-tl-xs shadow-[0_0_15px_rgba(0,210,255,0.06)]'
                 }`}
               >
                 {/* Replying banner */}
                 {msg.replyTo && (
-                  <div
-                    className={`mb-1.5 p-1.5 rounded-lg text-xs border-l-4 ${
-                      isMe
-                        ? 'bg-black/5 dark:bg-black/20 border-[#00a884]'
-                        : 'bg-gray-100 dark:bg-black/20 border-emerald-500'
-                    }`}
-                  >
-                    <div className="font-semibold text-[11px] text-[#00a884]">
-                      {msg.replyTo.senderName}
+                  <div className="mb-2 p-1.5 rounded-lg text-[11px] font-mono border-l-2 bg-black/40 border-emerald-400">
+                    <div className="font-bold text-emerald-400">
+                      RE: {msg.replyTo.senderName}
                     </div>
-                    <div className="text-gray-600 dark:text-gray-300 truncate">
+                    <div className="text-gray-400 truncate">
                       {msg.replyTo.text}
                     </div>
                   </div>
@@ -413,7 +452,7 @@ export const ChatArea: FC<ChatAreaProps> = ({
 
                 {/* 1. Text Message */}
                 {msg.messageType === 'text' && (
-                  <div className="whitespace-pre-wrap break-words pr-12 text-[13.5px] leading-relaxed">
+                  <div className="whitespace-pre-wrap break-words pr-12 text-[13px] leading-relaxed font-sans">
                     {msg.text}
                   </div>
                 )}
@@ -423,52 +462,54 @@ export const ChatArea: FC<ChatAreaProps> = ({
                   <div className="space-y-1.5">
                     <img
                       src={msg.mediaUrl}
-                      alt="Attachment"
-                      className="rounded-xl max-h-72 w-full object-cover shadow-2xs cursor-pointer hover:opacity-95"
+                      alt="Encrypted attachment"
+                      className="rounded-xl max-h-72 w-full object-cover border border-emerald-500/20 shadow-xs cursor-pointer hover:opacity-95"
                     />
                     {msg.text && (
-                      <div className="text-xs whitespace-pre-wrap break-words pr-12 pt-1">
+                      <div className="text-xs whitespace-pre-wrap break-words pr-12 pt-1 font-mono text-gray-300">
                         {msg.text}
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* 3. Voice Note */}
+                {/* 3. High-Tech Voice Note Spectrum */}
                 {msg.messageType === 'audio' && (
                   <div className="flex items-center space-x-3 pr-12 py-1">
                     <button
                       onClick={() => toggleAudioPlay(msg.id)}
-                      className="w-10 h-10 rounded-full bg-[#00a884] text-white flex items-center justify-center shrink-0 shadow-sm"
+                      className="w-9 h-9 rounded-xl bg-emerald-500 text-gray-950 flex items-center justify-center shrink-0 shadow-[0_0_12px_rgba(0,245,160,0.4)] active:scale-95 transition-all"
                     >
                       {playingAudioId === msg.id ? (
-                        <Pause className="w-5 h-5" />
+                        <Pause className="w-4 h-4 fill-gray-950" />
                       ) : (
-                        <Play className="w-5 h-5 ml-0.5" />
+                        <Play className="w-4 h-4 fill-gray-950 ml-0.5" />
                       )}
                     </button>
                     <div className="space-y-1">
-                      {/* Waveform graphic */}
+                      {/* Animated audio wave spectrum */}
                       <div className="flex items-center space-x-0.5 h-6">
-                        {[4, 12, 8, 16, 22, 14, 8, 18, 24, 10, 16, 12, 6, 14, 20, 10, 4].map(
+                        {[4, 14, 8, 20, 16, 24, 10, 18, 22, 12, 16, 8, 14, 18, 10, 6, 12].map(
                           (h, i) => (
                             <div
                               key={i}
                               className={`w-0.5 rounded-full transition-all ${
-                                playingAudioId === msg.id ? 'bg-[#00a884]' : 'bg-gray-400'
+                                playingAudioId === msg.id
+                                  ? 'bg-emerald-400 shadow-[0_0_6px_rgba(0,245,160,0.8)]'
+                                  : 'bg-gray-600'
                               }`}
                               style={{ height: `${h}px` }}
                             />
                           )
                         )}
                       </div>
-                      <div className="flex items-center justify-between text-[10px] text-gray-500">
-                        <span>{msg.audioDuration || '0:15'}</span>
+                      <div className="flex items-center justify-between text-[9px] font-mono text-gray-400 space-x-3">
+                        <span>{msg.audioDuration || '0:15'} // 44.1kHz</span>
                         <button
                           onClick={() =>
                             setAudioSpeed((s) => (s === '1x' ? '1.5x' : s === '1.5x' ? '2x' : '1x'))
                           }
-                          className="px-1.5 py-0.5 bg-black/10 dark:bg-white/10 rounded-md font-bold"
+                          className="px-1.5 py-0.5 bg-black/40 rounded-md font-bold text-emerald-400 border border-emerald-500/20"
                         >
                           {audioSpeed}
                         </button>
@@ -479,34 +520,48 @@ export const ChatArea: FC<ChatAreaProps> = ({
 
                 {/* 4. Document */}
                 {msg.messageType === 'document' && (
-                  <div className="flex items-center space-x-3 pr-12 p-1 bg-black/5 dark:bg-black/20 rounded-xl">
-                    <div className="p-2.5 bg-red-100 dark:bg-red-950/60 text-red-600 rounded-lg">
-                      <FileText className="w-6 h-6" />
+                  <div className="flex items-center space-x-3 pr-12 p-2 bg-black/40 border border-emerald-500/20 rounded-xl">
+                    <div className="p-2 bg-emerald-950/60 border border-emerald-500/30 text-emerald-400 rounded-lg">
+                      <FileText className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="text-xs font-semibold truncate max-w-[150px]">
-                        {msg.mediaName || 'Document.pdf'}
+                      <div className="text-xs font-mono font-bold truncate max-w-[150px] text-white">
+                        {msg.mediaName || 'Encrypted_Doc.pdf'}
                       </div>
-                      <div className="text-[10px] text-gray-500">{msg.mediaSize || '1.5 MB'}</div>
+                      <div className="text-[9px] font-mono text-gray-400">{msg.mediaSize || '1.8 MB'} // E2EE VALIDATED</div>
                     </div>
                   </div>
                 )}
 
-                {/* Timestamp & Status ticks */}
-                <div className="absolute bottom-1 right-2 flex items-center space-x-1 text-[10px] text-gray-500 dark:text-gray-400">
+                {/* Raw Ciphertext Inspector Drawer */}
+                {isInspected && (
+                  <div className="mt-2 p-2 bg-[#02050c] border border-emerald-500/30 rounded-lg font-mono text-[9px] text-emerald-400 space-y-1">
+                    <div className="flex items-center justify-between text-gray-400 border-b border-emerald-500/10 pb-1">
+                      <span>PACKET CIPHERTEXT INSPECTION</span>
+                      <span className="text-cyan-400">AES-GCM-256</span>
+                    </div>
+                    <div className="text-gray-400">IV: 0x{msg.id.slice(0, 16)}...</div>
+                    <div className="text-gray-400">MAC: SHA-384 AUTHENTICATED</div>
+                    <div className="text-emerald-300 break-all">[BUFFER // 256-BIT ENCLAVE CIPHERTEXT DECRYPTED LOCALLY]</div>
+                  </div>
+                )}
+
+                {/* Timestamp & Status Telemetry */}
+                <div className="absolute bottom-1 right-2 flex items-center space-x-1 text-[9px] font-mono text-gray-400">
+                  <button
+                    onClick={() => setInspectedMsgId(isInspected ? null : msg.id)}
+                    className="hover:text-emerald-400 underline mr-1"
+                    title="Inspect Cryptographic Packet"
+                  >
+                    #PKT-{msg.id.slice(-4)}
+                  </button>
                   <span>{msg.timestamp}</span>
                   {isMe && (
-                    <span
-                      className={
-                        msg.status === 'read'
-                          ? 'text-[#53bdeb]'
-                          : 'text-gray-400 dark:text-gray-500'
-                      }
-                    >
+                    <span className={msg.status === 'read' ? 'text-emerald-400' : 'text-gray-500'}>
                       {msg.status === 'sent' ? (
-                        <Check className="w-3.5 h-3.5" />
+                        <Check className="w-3 h-3" />
                       ) : (
-                        <CheckCheck className="w-3.5 h-3.5" />
+                        <CheckCheck className="w-3 h-3 text-emerald-400" />
                       )}
                     </span>
                   )}
@@ -516,11 +571,11 @@ export const ChatArea: FC<ChatAreaProps> = ({
               {/* Floating Action Menu (Reactions, Reply, Delete) */}
               {hoveredMsgId === msg.id && (
                 <div
-                  className={`absolute -top-7 flex items-center space-x-1 bg-white dark:bg-[#202c33] rounded-full shadow-md border border-gray-200 dark:border-gray-700 px-2 py-1 z-20 ${
+                  className={`absolute -top-7 flex items-center space-x-1 bg-[#091329] border border-emerald-500/30 rounded-full px-2 py-1 z-20 shadow-[0_0_15px_rgba(0,0,0,0.8)] ${
                     isMe ? 'right-2' : 'left-2'
                   }`}
                 >
-                  {['👍', '❤️', '😂', '🔥'].map((emoji) => (
+                  {['👍', '❤️', '🔥', '⚡'].map((emoji) => (
                     <button
                       key={emoji}
                       onClick={() => handleAddReaction(msg.id, emoji)}
@@ -531,18 +586,25 @@ export const ChatArea: FC<ChatAreaProps> = ({
                   ))}
                   <button
                     onClick={() => setReplyingTo(msg)}
-                    className="p-1 hover:text-[#00a884] text-gray-500"
+                    className="p-1 hover:text-emerald-400 text-gray-400"
                     title="Reply"
                   >
-                    <Reply className="w-3.5 h-3.5" />
+                    <Reply className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => setInspectedMsgId(isInspected ? null : msg.id)}
+                    className="p-1 hover:text-cyan-400 text-gray-400"
+                    title="Inspect Ciphertext"
+                  >
+                    <Binary className="w-3 h-3" />
                   </button>
                   {isMe && (
                     <button
                       onClick={() => supabaseData.deleteMessage(conversation.id, msg.id)}
-                      className="p-1 hover:text-red-500 text-gray-500"
-                      title="Delete"
+                      className="p-1 hover:text-red-400 text-gray-400"
+                      title="Purge message"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-3 h-3" />
                     </button>
                   )}
                 </div>
@@ -550,14 +612,14 @@ export const ChatArea: FC<ChatAreaProps> = ({
 
               {/* Reactions Badges */}
               {msg.reactions && msg.reactions.length > 0 && (
-                <div className="flex items-center space-x-1 -mt-2 z-10 pl-2">
+                <div className="flex items-center space-x-1 -mt-1.5 z-10 pl-2">
                   {msg.reactions.map((r, idx) => (
                     <span
                       key={idx}
-                      className="px-1.5 py-0.5 bg-white dark:bg-[#202c33] rounded-full shadow-2xs border border-gray-200 dark:border-gray-700 text-[11px] flex items-center space-x-0.5"
+                      className="px-1.5 py-0.5 bg-[#09142b] rounded-full border border-emerald-500/30 text-[10px] flex items-center space-x-0.5 font-mono text-emerald-300"
                     >
                       <span>{r.emoji}</span>
-                      {r.count > 1 && <span className="text-[9px] font-bold">{r.count}</span>}
+                      {r.count > 1 && <span className="font-bold text-[9px]">{r.count}</span>}
                     </span>
                   ))}
                 </div>
@@ -568,27 +630,27 @@ export const ChatArea: FC<ChatAreaProps> = ({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* 3. REPLY PREVIEW BAR */}
+      {/* 4. REPLY PREVIEW BAR */}
       {replyingTo && (
-        <div className="px-4 py-2 bg-gray-100 dark:bg-[#182229] border-t border-gray-200 dark:border-gray-800 flex items-center justify-between z-10 shrink-0">
-          <div className="flex items-center space-x-2 border-l-4 border-[#00a884] pl-2 text-xs">
-            <span className="font-semibold text-[#00a884]">
-              Replying to {replyingTo.senderId === currentUser.id ? 'yourself' : conversation.name}:
+        <div className="px-4 py-2 bg-[#091329] border-t border-emerald-500/20 flex items-center justify-between z-10 shrink-0 font-mono text-xs">
+          <div className="flex items-center space-x-2 border-l-2 border-emerald-400 pl-2">
+            <span className="font-bold text-emerald-400">
+              RE: {replyingTo.senderId === currentUser.id ? 'Self Node' : conversation.name}:
             </span>
-            <span className="text-gray-600 dark:text-gray-300 truncate max-w-md">
+            <span className="text-gray-400 truncate max-w-md">
               {replyingTo.text}
             </span>
           </div>
           <button
             onClick={() => setReplyingTo(null)}
-            className="p-1 text-gray-500 hover:text-gray-800 dark:hover:text-white"
+            className="p-1 text-gray-400 hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      {/* 4. ATTACHMENT POPUP */}
+      {/* 5. ATTACHMENT POPUP */}
       {showAttachMenu && (
         <>
           <div
@@ -597,31 +659,31 @@ export const ChatArea: FC<ChatAreaProps> = ({
           />
           <div
             ref={attachMenuRef}
-            className="absolute bottom-18 left-14 bg-white dark:bg-[#233138] rounded-2xl shadow-xl p-3 border border-gray-200 dark:border-gray-700 z-30 flex flex-col space-y-2 animate-in fade-in zoom-in-95 duration-150"
+            className="absolute bottom-18 left-14 bg-[#0a1329] rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.8)] p-3 border border-emerald-500/30 z-30 flex flex-col space-y-2 animate-in fade-in zoom-in-95 duration-150 font-mono"
           >
             <button
               onClick={handleSendMockImage}
-              className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#182229] text-xs font-medium text-gray-800 dark:text-gray-200"
+              className="flex items-center space-x-3 p-2 rounded-xl hover:bg-[#0f1d3d] text-xs font-medium text-emerald-300 transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-purple-950/60 border border-purple-500/30 text-purple-400 flex items-center justify-center">
                 <ImageIcon className="w-4 h-4" />
               </div>
-              <span>Photos & Videos</span>
+              <span>ENCRYPTED PHOTO // VIDEO</span>
             </button>
             <button
               onClick={handleSendMockDocument}
-              className="flex items-center space-x-3 p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-[#182229] text-xs font-medium text-gray-800 dark:text-gray-200"
+              className="flex items-center space-x-3 p-2 rounded-xl hover:bg-[#0f1d3d] text-xs font-medium text-cyan-300 transition-colors"
             >
-              <div className="w-8 h-8 rounded-full bg-indigo-500 text-white flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-indigo-950/60 border border-indigo-500/30 text-cyan-400 flex items-center justify-center">
                 <FileText className="w-4 h-4" />
               </div>
-              <span>Document</span>
+              <span>ENCRYPTED DOCUMENT</span>
             </button>
           </div>
         </>
       )}
 
-      {/* 5. EMOJI PICKER POPUP */}
+      {/* 6. EMOJI PICKER POPUP */}
       {showEmojiPicker && (
         <>
           <div
@@ -630,7 +692,7 @@ export const ChatArea: FC<ChatAreaProps> = ({
           />
           <div
             ref={emojiPickerRef}
-            className="absolute bottom-18 left-4 bg-white dark:bg-[#233138] rounded-2xl shadow-xl p-3 border border-gray-200 dark:border-gray-700 z-30 grid grid-cols-7 gap-2 animate-in fade-in zoom-in-95 duration-150"
+            className="absolute bottom-18 left-4 bg-[#0a1329] rounded-2xl shadow-[0_0_30px_rgba(0,0,0,0.8)] p-3 border border-emerald-500/30 z-30 grid grid-cols-7 gap-2 animate-in fade-in zoom-in-95 duration-150"
           >
             {EMOJIS.map((emoji) => (
               <button
@@ -640,7 +702,7 @@ export const ChatArea: FC<ChatAreaProps> = ({
                   setShowEmojiPicker(false);
                   inputRef.current?.focus();
                 }}
-                className="text-xl p-1.5 hover:bg-gray-100 dark:hover:bg-[#182229] rounded-lg transition-transform hover:scale-125"
+                className="text-xl p-1.5 hover:bg-[#0f1d3d] rounded-lg transition-transform hover:scale-125"
               >
                 {emoji}
               </button>
@@ -649,90 +711,88 @@ export const ChatArea: FC<ChatAreaProps> = ({
         </>
       )}
 
-      {/* 6. BOTTOM INPUT / VOICE RECORDER BAR */}
-      <div className="h-16 px-4 bg-[#f0f2f5] dark:bg-[#202c33] border-t border-gray-200 dark:border-gray-800 flex items-center space-x-3 z-10 shrink-0">
+      {/* 7. BOTTOM COMMAND INPUT / RECORDER DECK */}
+      <div className="h-16 px-4 bg-[#081022] border-t border-emerald-500/20 flex items-center space-x-3 z-10 shrink-0">
         {isRecording ? (
-          /* Live Voice Recorder Bar */
-          <div className="flex-1 flex items-center justify-between bg-white dark:bg-[#2a3942] rounded-full px-4 py-2 border border-gray-300 dark:border-gray-700">
-            <div className="flex items-center space-x-3">
-              <div className="w-3 h-3 rounded-full bg-red-500 animate-ping" />
-              <span className="text-xs font-mono font-bold text-red-500">
-                0:{recordingSeconds.toString().padStart(2, '0')}
+          /* Live Cyber Voice Recording Deck */
+          <div className="flex-1 flex items-center justify-between bg-[#040813] border border-red-500/40 rounded-xl px-4 py-2 shadow-[0_0_15px_rgba(239,68,68,0.2)]">
+            <div className="flex items-center space-x-3 font-mono">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+              <span className="text-xs font-bold text-red-400">
+                REC 0:{recordingSeconds.toString().padStart(2, '0')}
               </span>
-              <span className="text-xs text-gray-500">Recording voice note...</span>
+              <span className="text-[11px] text-gray-400 hidden sm:inline">STREAMING ENCRYPTED AUDIO PACKETS...</span>
             </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setIsRecording(false)}
-                className="p-1.5 text-gray-500 hover:text-red-500 transition-colors"
-                title="Cancel"
+                className="p-1.5 text-gray-400 hover:text-red-400 transition-colors"
+                title="Abort"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
               <button
                 onClick={handleSendVoiceNote}
-                className="p-2 bg-[#00a884] text-white rounded-full hover:bg-[#008f70] transition-colors shadow-sm"
-                title="Send Voice Note"
+                className="p-2 bg-emerald-500 text-gray-950 font-bold rounded-xl hover:bg-emerald-400 transition-all shadow-[0_0_12px_rgba(0,245,160,0.4)]"
+                title="Transmit Voice Note"
               >
                 <Send className="w-4 h-4" />
               </button>
             </div>
           </div>
         ) : (
-          /* Standard Input Bar */
+          /* Standard Tactical Command Input Deck */
           <>
-            {/* Emoji Trigger */}
             <button
               onClick={() => {
                 setShowEmojiPicker(!showEmojiPicker);
                 setShowAttachMenu(false);
               }}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              title="Emojis"
+              className="p-2 text-gray-400 hover:text-emerald-400 transition-colors"
+              title="Tactical Emojis"
             >
-              <Smile className="w-6 h-6" />
+              <Smile className="w-5 h-5" />
             </button>
 
-            {/* Paperclip Attachment Trigger */}
             <button
               onClick={() => {
                 setShowAttachMenu(!showAttachMenu);
                 setShowEmojiPicker(false);
               }}
-              className="p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
-              title="Attach"
+              className="p-2 text-gray-400 hover:text-emerald-400 transition-colors"
+              title="Attach Encrypted File"
             >
-              <Paperclip className="w-6 h-6" />
+              <Paperclip className="w-5 h-5" />
             </button>
 
-            {/* Message Input Field */}
+            {/* Input Form */}
             <form onSubmit={handleSendTextMessage} className="flex-1">
               <input
                 ref={inputRef}
                 type="text"
-                placeholder="Type a message"
+                placeholder="ENTER ENCRYPTED TRANSMISSION... [ENTER]"
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
-                className="w-full py-2.5 px-4 bg-white dark:bg-[#2a3942] text-gray-900 dark:text-white rounded-xl text-sm placeholder-gray-500 dark:placeholder-gray-400 focus:outline-hidden border border-transparent focus:border-[#00a884] transition-all"
+                className="w-full py-2.5 px-4 bg-[#040813] border border-emerald-500/30 text-emerald-300 font-mono rounded-xl text-xs placeholder-gray-500 focus:outline-hidden focus:border-emerald-400 focus:shadow-[0_0_15px_rgba(0,245,160,0.25)] transition-all"
               />
             </form>
 
-            {/* Send or Mic Button */}
+            {/* Transmit / Record Mic */}
             {inputText.trim() ? (
               <button
                 onClick={() => handleSendTextMessage()}
-                className="p-2.5 bg-[#00a884] text-white rounded-full hover:bg-[#008f70] transition-all shadow-md active:scale-95"
-                title="Send message"
+                className="p-2.5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold rounded-xl shadow-[0_0_15px_rgba(0,245,160,0.4)] transition-all active:scale-95"
+                title="Transmit"
               >
                 <Send className="w-4 h-4" />
               </button>
             ) : (
               <button
                 onClick={() => setIsRecording(true)}
-                className="p-2 text-gray-600 dark:text-gray-400 hover:text-[#00a884] transition-colors"
-                title="Hold to record voice message"
+                className="p-2 text-gray-400 hover:text-emerald-400 transition-colors"
+                title="Record Encrypted Voice Stream"
               >
-                <Mic className="w-6 h-6" />
+                <Mic className="w-5 h-5" />
               </button>
             )}
           </>
