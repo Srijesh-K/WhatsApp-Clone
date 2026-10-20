@@ -13,7 +13,8 @@ import {
   AlertCircle,
   X,
   Settings,
-  ExternalLink,
+  Terminal,
+  Fingerprint,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { mojoAuth } from '../services/mojoauth';
@@ -392,31 +393,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#efeae2] dark:bg-[#0b141a] p-4 select-none animate-in fade-in duration-300">
-      <div className="w-full max-w-md bg-white dark:bg-[#202c33] rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-800 flex flex-col">
-        {/* Top Header */}
-        <div className="bg-[#008069] text-white p-6 flex flex-col items-center text-center space-y-2 relative">
-          <button
-            type="button"
-            onClick={() => setShowConfigModal(true)}
-            className="absolute top-4 right-4 p-2 rounded-full hover:bg-white/10 text-white transition-colors"
-            title="Configure MojoAuth & Supabase Mail Delivery"
-          >
-            <Settings className="w-5 h-5" />
-          </button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712] p-4 select-none cyber-grid-dark cyber-scanlines">
+      {/* Ambient Cyber Glow */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-          <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center backdrop-blur-xs">
-            <ShieldCheck className="w-8 h-8 text-white" />
+      <div className="w-full max-w-md bg-[#0a1122]/95 border border-emerald-500/30 rounded-2xl shadow-[0_0_60px_-10px_rgba(0,245,160,0.2)] overflow-hidden flex flex-col backdrop-blur-2xl relative z-10">
+        {/* Top High-Tech Terminal Header */}
+        <div className="bg-[#050c18] border-b border-emerald-500/20 p-5 flex flex-col items-center text-center space-y-2 relative">
+          {/* Telemetry Strip */}
+          <div className="w-full flex items-center justify-between text-[10px] font-mono text-emerald-400/80 mb-1 border-b border-emerald-500/10 pb-2">
+            <div className="flex items-center space-x-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 radar-online" />
+              <span className="tracking-wider">NODE: ONLINE // US-EAST</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-cyan-400/80">E2EE: ACTIVE</span>
+              <button
+                type="button"
+                onClick={() => setShowConfigModal(true)}
+                className="p-1 rounded-md bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-colors"
+                title="Configure MojoAuth & Supabase Mail Delivery"
+              >
+                <Settings className="w-3.5 h-3.5" />
+              </button>
+            </div>
           </div>
-          <h2 className="text-xl font-bold tracking-tight">WhatsApp Web</h2>
-          <p className="text-xs text-emerald-100">
-            End-to-End Encrypted & MojoAuth Protected
+
+          <div className="relative">
+            <div className="w-13 h-13 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(0,245,160,0.2)]">
+              <ShieldCheck className="w-7 h-7 text-[#00f5a0]" />
+            </div>
+            {/* Tactical Corner Accents */}
+            <div className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t border-l border-emerald-400" />
+            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t border-r border-emerald-400" />
+            <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b border-l border-emerald-400" />
+            <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b border-r border-emerald-400" />
+          </div>
+
+          <h2 className="text-lg font-bold font-mono tracking-wider text-white flex items-center space-x-1.5">
+            <span>WHATSAPP // CYBER ENCLAVE</span>
+          </h2>
+          <p className="text-[11px] font-mono text-emerald-400/80">
+            ZERO-KNOWLEDGE AUTHENTICATION // MOJOAUTH PROTECTED
           </p>
         </div>
 
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-xl flex items-start space-x-2">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div className="mx-6 mt-4 p-3 bg-red-950/60 border border-red-500/40 text-red-300 font-mono text-xs rounded-xl flex items-start space-x-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
             <div className="flex-1 leading-relaxed">{errorMsg}</div>
           </div>
         )}
@@ -427,57 +451,57 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {/* ============================================================ */}
           {step === 'input' && (
             <div className="space-y-4">
-              {/* Sign In vs Create Account Toggle */}
-              <div className="flex bg-gray-100 dark:bg-[#111b21] p-1 rounded-xl">
+              {/* Tactical Mode Toggle */}
+              <div className="flex bg-[#040813] p-1 rounded-xl border border-emerald-500/20">
                 <button
                   type="button"
                   onClick={() => { setAuthMode('login'); setErrorMsg(null); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                  className={`flex-1 py-2 rounded-lg text-xs font-mono font-semibold flex items-center justify-center space-x-1.5 transition-all ${
                     authMode === 'login'
-                      ? 'bg-white dark:bg-[#202c33] text-[#00a884] shadow-xs'
-                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-emerald-500 text-gray-950 shadow-[0_0_15px_rgba(0,245,160,0.3)]'
+                      : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   <LogIn className="w-3.5 h-3.5" />
-                  <span>Sign In</span>
+                  <span>[01 // SIGN IN]</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { setAuthMode('signup'); setErrorMsg(null); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                  className={`flex-1 py-2 rounded-lg text-xs font-mono font-semibold flex items-center justify-center space-x-1.5 transition-all ${
                     authMode === 'signup'
-                      ? 'bg-white dark:bg-[#202c33] text-[#00a884] shadow-xs'
-                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                      ? 'bg-emerald-500 text-gray-950 shadow-[0_0_15px_rgba(0,245,160,0.3)]'
+                      : 'text-gray-400 hover:text-white'
                   }`}
                 >
                   <UserPlus className="w-3.5 h-3.5" />
-                  <span>Create Account</span>
+                  <span>[02 // CREATE ID]</span>
                 </button>
               </div>
 
               {/* Title & Description */}
               <div className="text-center space-y-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  {authMode === 'login' ? 'Sign in to your account' : 'Create a new WhatsApp account'}
+                <h3 className="font-mono font-bold text-white text-sm tracking-wide">
+                  {authMode === 'login' ? 'ACCESS CRYPTOGRAPHIC ACCOUNT' : 'INITIALIZE NEW HARDWARE IDENTITY'}
                 </h3>
-                <p className="text-xs text-gray-500 leading-relaxed">
+                <p className="text-[11px] font-mono text-gray-400 leading-relaxed">
                   {authMode === 'login'
-                    ? 'Log in using your Email, Google, Facebook, or Phone.'
-                    : 'Register your account using Email, Google, Facebook, or Phone.'}
+                    ? 'Authenticate via Email OTP, Google, Meta, or Phone'
+                    : 'Register your cryptographic public key on the secure network'}
                 </p>
               </div>
 
               {/* Notice if no API key is connected */}
               {!mojoAuth.isConfigured() && (
-                <div className="flex items-center justify-between p-2.5 bg-emerald-50/80 dark:bg-[#111b21] border border-emerald-200 dark:border-gray-800 rounded-xl text-xs">
-                  <div className="flex items-center space-x-2 text-emerald-800 dark:text-emerald-300">
-                    <Mail className="w-4 h-4 shrink-0 text-[#00a884]" />
-                    <span className="text-[11px]">To send live emails to your mail, add MojoAuth key.</span>
+                <div className="flex items-center justify-between p-2.5 bg-[#050f1d] border border-cyan-500/30 rounded-xl text-xs font-mono">
+                  <div className="flex items-center space-x-2 text-cyan-300">
+                    <Mail className="w-4 h-4 shrink-0 text-cyan-400" />
+                    <span className="text-[10px]">Add MojoAuth API key to enable live email delivery.</span>
                   </div>
                   <button
                     type="button"
                     onClick={() => setShowConfigModal(true)}
-                    className="px-2 py-1 bg-[#00a884] hover:bg-[#008f70] text-white rounded-lg text-[10px] font-semibold shrink-0"
+                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-400 text-gray-950 rounded-lg text-[10px] font-bold shrink-0 shadow-sm"
                   >
                     Add Key
                   </button>
@@ -485,30 +509,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               )}
 
               {/* Email / Phone Method Toggle */}
-              <div className="flex justify-center space-x-4 border-b border-gray-100 dark:border-gray-800 pb-2">
+              <div className="flex justify-center space-x-4 border-b border-emerald-500/10 pb-2">
                 <button
                   type="button"
                   onClick={() => { setAuthMethod('email'); setErrorMsg(null); }}
-                  className={`text-xs font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
+                  className={`text-xs font-mono font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
                     authMethod === 'email'
-                      ? 'border-[#00a884] text-[#00a884]'
-                      : 'border-transparent text-gray-400 hover:text-gray-600'
+                      ? 'border-emerald-400 text-emerald-400'
+                      : 'border-transparent text-gray-400 hover:text-gray-200'
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Email OTP</span>
+                  <span>Email OTP Gateway</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { setAuthMethod('phone'); setErrorMsg(null); }}
-                  className={`text-xs font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
+                  className={`text-xs font-mono font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
                     authMethod === 'phone'
-                      ? 'border-[#00a884] text-[#00a884]'
-                      : 'border-transparent text-gray-400 hover:text-gray-600'
+                      ? 'border-emerald-400 text-emerald-400'
+                      : 'border-transparent text-gray-400 hover:text-gray-200'
                   }`}
                 >
                   <Phone className="w-3.5 h-3.5" />
-                  <span>Phone SMS</span>
+                  <span>Phone SMS Gateway</span>
                 </button>
               </div>
 
@@ -516,8 +540,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               <form onSubmit={handleSendOtp} className="space-y-3">
                 {authMethod === 'email' ? (
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                      Email Address
+                    <label className="block text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-wider">
+                      Email Address (Cryptographic Identifier)
                     </label>
                     <div className="relative">
                       <input
@@ -527,16 +551,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                         placeholder="srijesh@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                        className="w-full pl-10 pr-3 py-2.5 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono font-medium text-emerald-300 focus:outline-hidden focus:border-emerald-400 focus:shadow-[0_0_15px_rgba(0,245,160,0.3)] transition-all"
                       />
-                      <Mail className="w-4 h-4 text-gray-400 absolute left-3.5 top-3" />
+                      <Mail className="w-4 h-4 text-emerald-400/60 absolute left-3.5 top-3" />
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                        Country
+                      <label className="block text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-wider">
+                        Country Code
                       </label>
                       <select
                         value={selectedCountry.name}
@@ -544,7 +568,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                           const c = COUNTRIES.find((x) => x.name === e.target.value);
                           if (c) setSelectedCountry(c);
                         }}
-                        className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                        className="w-full py-2 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400 transition-all"
                       >
                         {COUNTRIES.map((c) => (
                           <option key={c.name} value={c.name}>
@@ -555,11 +579,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     </div>
 
                     <div className="space-y-1">
-                      <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                      <label className="block text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-wider">
                         Phone Number
                       </label>
                       <div className="flex space-x-2">
-                        <div className="py-2.5 px-3 bg-gray-100 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-300">
+                        <div className="py-2.5 px-3 bg-[#070d1a] border border-emerald-500/30 rounded-xl text-xs font-mono font-semibold text-emerald-400">
                           {selectedCountry.code}
                         </div>
                         <input
@@ -567,7 +591,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                           placeholder="555 123 4567"
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="flex-1 py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                          className="flex-1 py-2.5 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400 transition-all"
                         />
                       </div>
                     </div>
@@ -577,20 +601,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   type="submit"
                   disabled={isVerifying}
-                  className="w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all disabled:opacity-50"
+                  className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl font-mono font-bold text-xs tracking-wider flex items-center justify-center space-x-2 shadow-[0_0_20px_rgba(0,245,160,0.3)] transition-all active:scale-98 disabled:opacity-50"
                 >
                   {authMethod === 'email' ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
-                  <span>{isVerifying ? 'Sending MojoAuth OTP...' : authMethod === 'email' ? 'Send OTP to Mail' : 'Continue with Phone'}</span>
+                  <span>{isVerifying ? 'DISPATCHING MOJOAUTH OTP...' : authMethod === 'email' ? '[TRANSMIT OTP TO MAIL]' : '[CONTINUE VIA PHONE]'}</span>
                 </button>
               </form>
 
               {/* Social Login Options Divider */}
               <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                <span className="shrink mx-3 text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
-                  Or continue with
+                <div className="flex-grow border-t border-emerald-500/20"></div>
+                <span className="shrink mx-3 text-[9px] font-mono text-gray-400 uppercase tracking-widest">
+                  OAUTH FEDERATION
                 </span>
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                <div className="flex-grow border-t border-emerald-500/20"></div>
               </div>
 
               {/* Google and Facebook Buttons */}
@@ -599,7 +623,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   type="button"
                   onClick={() => handleOpenSocialModal('google')}
-                  className="py-2.5 px-3 bg-white dark:bg-[#111b21] hover:bg-gray-50 dark:hover:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center justify-center space-x-2 shadow-2xs transition-all active:scale-98"
+                  className="py-2.5 px-3 bg-[#070d1a] hover:bg-[#0c152a] border border-emerald-500/25 hover:border-emerald-400 rounded-xl text-xs font-mono text-gray-200 flex items-center justify-center space-x-2 transition-all active:scale-98"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
@@ -614,7 +638,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   type="button"
                   onClick={() => handleOpenSocialModal('facebook')}
-                  className="py-2.5 px-3 bg-white dark:bg-[#111b21] hover:bg-gray-50 dark:hover:bg-[#202c33] border border-gray-200 dark:border-gray-700 rounded-xl text-xs font-semibold text-gray-700 dark:text-gray-200 flex items-center justify-center space-x-2 shadow-2xs transition-all active:scale-98"
+                  className="py-2.5 px-3 bg-[#070d1a] hover:bg-[#0c152a] border border-emerald-500/25 hover:border-emerald-400 rounded-xl text-xs font-mono text-gray-200 flex items-center justify-center space-x-2 transition-all active:scale-98"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -629,17 +653,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   <button
                     type="button"
                     onClick={() => { setAuthMode('signup'); setErrorMsg(null); }}
-                    className="text-xs text-[#00a884] hover:underline"
+                    className="text-[11px] font-mono text-emerald-400 hover:text-emerald-300 hover:underline"
                   >
-                    Don't have an account yet? Create one
+                    // No hardware account registered? Initialize one
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => { setAuthMode('login'); setErrorMsg(null); }}
-                    className="text-xs text-[#00a884] hover:underline"
+                    className="text-[11px] font-mono text-emerald-400 hover:text-emerald-300 hover:underline"
                   >
-                    Already have an account? Sign in
+                    // Account signature already present? Access terminal
                   </button>
                 )}
               </div>
@@ -651,27 +675,24 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {/* ============================================================ */}
           {step === 'otp' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2">
                 <button
                   type="button"
                   onClick={() => setStep('input')}
-                  className="p-1 rounded-full text-gray-500 hover:text-gray-900 dark:hover:text-white"
+                  className="p-1 rounded-lg text-gray-400 hover:text-emerald-400 hover:bg-[#070f20] transition-colors"
                 >
-                  <ArrowLeft className="w-5 h-5" />
+                  <ArrowLeft className="w-4 h-4" />
                 </button>
-                <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  {pendingSocialAuth?.provider === 'google'
-                    ? 'Check your Google email'
-                    : authMethod === 'email'
-                    ? 'Check your mail'
-                    : 'Verifying code'}
-                </h3>
-                <div className="w-5" />
+                <div className="flex items-center space-x-1.5 text-xs font-mono font-bold text-white">
+                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>// VERIFY CRYPTOGRAPHIC KEY</span>
+                </div>
+                <div className="w-4" />
               </div>
 
               <div className="flex flex-col items-center space-y-1">
                 {pendingSocialAuth?.provider === 'google' ? (
-                  <div className="w-12 h-12 bg-blue-50 dark:bg-blue-950/40 rounded-full flex items-center justify-center mb-1">
+                  <div className="w-12 h-12 bg-blue-950/40 border border-blue-500/30 rounded-2xl flex items-center justify-center mb-1">
                     <svg className="w-6 h-6" viewBox="0 0 24 24">
                       <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
                       <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
@@ -680,50 +701,48 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     </svg>
                   </div>
                 ) : authMethod === 'email' ? (
-                  <div className="w-12 h-12 bg-teal-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-[#00a884] mb-1">
+                  <div className="w-12 h-12 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl flex items-center justify-center text-[#00f5a0] mb-1 shadow-[0_0_20px_rgba(0,245,160,0.2)]">
                     <Inbox className="w-6 h-6" />
                   </div>
                 ) : null}
-                <p className="text-xs text-gray-500 text-center leading-relaxed">
-                  Enter the 6-digit verification code sent to{' '}
-                  <span className="font-semibold text-gray-900 dark:text-white">{destinationDisplay}</span>.
+                <p className="text-[11px] font-mono text-gray-400 text-center leading-relaxed">
+                  ENTER 6-DIGIT PAYLOAD TRANSMITTED TO{' '}
+                  <span className="font-bold text-emerald-400">{destinationDisplay}</span>
                 </p>
               </div>
 
               {/* Delivery Status Card */}
-              <div className="p-3 bg-gray-50 dark:bg-[#111b21] border border-gray-200 dark:border-gray-800 rounded-xl text-center space-y-1.5">
-                <div className="text-xs text-gray-500">
-                  {pendingSocialAuth?.provider === 'google'
-                    ? 'Google Account verification code sent to'
-                    : 'Verification code sent to'}
+              <div className="p-3 bg-[#040813] border border-emerald-500/20 rounded-xl text-center space-y-1.5 font-mono">
+                <div className="text-[10px] text-gray-400 uppercase tracking-wider">
+                  DISPATCH DESTINATION:
                 </div>
-                <div className="text-sm font-semibold font-mono text-gray-800 dark:text-gray-200">
+                <div className="text-xs font-semibold text-white tracking-wider">
                   {destinationDisplay}
                 </div>
                 {isRealEmailSent ? (
-                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center justify-center space-x-1">
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Live email dispatched! Check your inbox and spam folder.</span>
+                  <div className="text-[10px] text-emerald-400 font-medium flex items-center justify-center space-x-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>DISPATCH CONFIRMED // CHECK INBOX / SPAM</span>
                   </div>
                 ) : (
-                  <div className="p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-lg text-[11px] text-amber-800 dark:text-amber-300 space-y-1">
+                  <div className="p-2 bg-[#0d182e] border border-cyan-500/30 rounded-lg text-[10px] text-cyan-300 space-y-1">
                     <div className="font-semibold flex items-center justify-center space-x-1">
-                      <AlertCircle className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Live email service not connected yet</span>
+                      <AlertCircle className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>DEVELOPMENT TELEMETRY ACTIVE</span>
                     </div>
-                    <div className="text-gray-600 dark:text-gray-400">
-                      To receive real emails in your inbox, enter your MojoAuth Key in Settings.
+                    <div className="text-gray-400">
+                      Live key unconfigured in environment. Use sandbox bypass or configure MojoAuth.
                     </div>
                     <div className="pt-0.5 flex items-center justify-center space-x-2">
                       <button
                         type="button"
                         onClick={() => setShowConfigModal(true)}
-                        className="text-[#00a884] underline font-semibold hover:text-[#008f70]"
+                        className="text-emerald-400 underline font-semibold hover:text-emerald-300"
                       >
-                        Enter MojoAuth Key
+                        [SET API KEY]
                       </button>
-                      <span className="text-gray-400">|</span>
-                      <span className="font-mono font-bold text-[#00a884]">Test Code: 123456</span>
+                      <span className="text-gray-500">|</span>
+                      <span className="font-mono font-bold text-cyan-400">BYPASS CODE: 123456</span>
                     </div>
                   </div>
                 )}
@@ -740,35 +759,35 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     value={digit}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-11 h-13 text-center text-xl font-bold font-mono bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl focus:border-[#00a884] focus:ring-2 focus:ring-[#00a884]/20 focus:outline-hidden text-gray-900 dark:text-white transition-all"
+                    className="w-11 h-13 text-center text-xl font-bold font-mono bg-[#040813] border border-emerald-500/30 text-emerald-300 rounded-xl focus:border-emerald-400 focus:shadow-[0_0_15px_rgba(0,245,160,0.35)] focus:outline-hidden transition-all"
                   />
                 ))}
               </div>
 
               {/* Resend button */}
-              <div className="flex items-center justify-between pt-2 text-xs">
+              <div className="flex items-center justify-between pt-2 text-xs font-mono">
                 <button
                   type="button"
                   disabled={resendTimer > 0 || isVerifying}
                   onClick={() => handleSendOtp({ preventDefault: () => {} } as React.FormEvent)}
-                  className="text-[#00a884] font-medium hover:underline disabled:text-gray-400 flex items-center space-x-1"
+                  className="text-emerald-400 font-medium hover:underline disabled:text-gray-500 flex items-center space-x-1"
                 >
                   <RefreshCw className="w-3 h-3" />
                   <span>
                     {resendTimer > 0
-                      ? `Resend in ${resendTimer}s`
+                      ? `[RETRY: ${resendTimer}s]`
                       : authMethod === 'email'
-                      ? 'Resend Email'
-                      : 'Resend SMS'}
+                      ? '[RETRANSMIT EMAIL]'
+                      : '[RETRANSMIT SMS]'}
                   </span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleVerifyOtp()}
                   disabled={isVerifying || otpDigits.some((d) => !d)}
-                  className="py-2 px-4 bg-[#00a884] text-white rounded-lg font-medium hover:bg-[#008f70] disabled:opacity-50 transition-colors"
+                  className="py-2 px-5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold font-mono rounded-xl tracking-wider disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(0,245,160,0.3)]"
                 >
-                  {isVerifying ? 'Verifying...' : 'Verify'}
+                  {isVerifying ? 'VERIFYING...' : '[VERIFY KEY]'}
                 </button>
               </div>
             </div>
@@ -778,17 +797,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {/* STEP 3: SECURITY CHECK (Passkey / PIN) */}
           {/* ============================================================ */}
           {step === 'security_check' && (
-            <div className="space-y-5 text-center">
-              <div className="w-16 h-16 bg-teal-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-[#00a884] mx-auto">
+            <div className="space-y-5 text-center font-mono">
+              <div className="w-16 h-16 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl flex items-center justify-center text-[#00f5a0] mx-auto shadow-[0_0_20px_rgba(0,245,160,0.25)]">
                 <KeyRound className="w-8 h-8" />
               </div>
 
               <div className="space-y-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  Security Verification Required
+                <h3 className="font-bold text-white text-sm tracking-wider">
+                  // HARDWARE VERIFICATION REQUIRED
                 </h3>
-                <p className="text-xs text-gray-500">
-                  This account is protected with hardware Passkey / PIN. Verify your biometric identity to prevent unauthorized takeover.
+                <p className="text-[11px] text-gray-400">
+                  Account is protected by hardware security enclave. Provide biometric signature to proceed.
                 </p>
               </div>
 
@@ -796,17 +815,17 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   onClick={handleVerifyPasskey}
                   disabled={isCheckingSecurity}
-                  className="w-full py-3 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all disabled:opacity-50"
+                  className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl font-bold font-mono text-xs tracking-wider flex items-center justify-center space-x-2 shadow-[0_0_20px_rgba(0,245,160,0.3)] transition-all disabled:opacity-50"
                 >
-                  <ShieldCheck className="w-4 h-4" />
-                  <span>{isCheckingSecurity ? 'Scanning Biometrics...' : 'Authenticate with Device Passkey'}</span>
+                  <Fingerprint className="w-4 h-4" />
+                  <span>{isCheckingSecurity ? 'SCANNING HARDWARE...' : '[AUTHENTICATE VIA PASSKEY]'}</span>
                 </button>
               )}
 
               {security.isTwoStepEnabled() && (
-                <form onSubmit={handleVerifyPin} className="space-y-3 pt-2 border-t border-gray-200 dark:border-gray-800">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400">
-                    Or Enter 6-Digit Two-Step PIN
+                <form onSubmit={handleVerifyPin} className="space-y-3 pt-3 border-t border-emerald-500/10">
+                  <label className="block text-[10px] uppercase text-gray-400">
+                    OR ENTER 6-DIGIT SECURITY PIN
                   </label>
                   <input
                     type="password"
@@ -814,13 +833,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     value={pinInput}
                     onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
                     placeholder="••••••"
-                    className="w-full text-center tracking-widest text-xl font-mono py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl focus:outline-hidden focus:border-[#00a884]"
+                    className="w-full text-center tracking-[0.4em] text-xl font-mono py-2.5 px-3 bg-[#040813] border border-emerald-500/30 text-emerald-300 rounded-xl focus:outline-hidden focus:border-emerald-400"
                   />
                   <button
                     type="submit"
-                    className="w-full py-2.5 px-4 bg-gray-800 text-white rounded-xl text-xs font-medium hover:bg-gray-700 transition-colors"
+                    className="w-full py-2.5 px-4 bg-[#0a152e] border border-emerald-500/30 hover:border-emerald-400 text-emerald-300 rounded-xl text-xs font-mono font-bold transition-colors"
                   >
-                    Confirm PIN
+                    [SUBMIT PIN CODE]
                   </button>
                 </form>
               )}
@@ -831,13 +850,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {/* STEP 4: PROFILE SETUP (ONLY FOR NEW ACCOUNTS) */}
           {/* ============================================================ */}
           {step === 'profile' && (
-            <form onSubmit={handleFinishProfile} className="space-y-5">
+            <form onSubmit={handleFinishProfile} className="space-y-4 font-mono">
               <div className="text-center space-y-1">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-base">
-                  Profile Info
+                <h3 className="font-bold text-white text-sm tracking-wider">
+                  // INITIALIZE NODE PROFILE
                 </h3>
-                <p className="text-xs text-gray-500">
-                  Set up your name and optional profile avatar.
+                <p className="text-[11px] text-gray-400">
+                  Establish public encryption alias and cryptographic identity.
                 </p>
               </div>
 
@@ -847,19 +866,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   <img
                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`}
                     alt="Profile Avatar"
-                    className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-[#00a884] p-1 shadow-md"
+                    className="w-20 h-20 rounded-2xl bg-[#040813] border-2 border-emerald-400/60 p-1 shadow-[0_0_15px_rgba(0,245,160,0.25)]"
                   />
-                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-[10px] font-semibold transition-opacity">
-                    Change
+                  <div className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-emerald-400 text-[10px] font-bold transition-opacity">
+                    [RANDOMIZE]
                   </div>
                 </div>
-                <span className="text-[11px] text-gray-400">Tap avatar to randomize</span>
+                <span className="text-[10px] text-gray-500">Click avatar to regenerate seed</span>
               </div>
 
               {/* Full Name */}
               <div className="space-y-1">
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                  Your Name
+                <label className="block text-[10px] uppercase text-gray-400">
+                  Display Alias / Name
                 </label>
                 <input
                   type="text"
@@ -868,30 +887,30 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   placeholder="e.g. Srijesh"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                  className="w-full py-2.5 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
                 />
               </div>
 
               {/* About Status */}
               <div className="space-y-1">
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
-                  About
+                <label className="block text-[10px] uppercase text-gray-400">
+                  Broadcast Status
                 </label>
                 <input
                   type="text"
-                  placeholder="Hey there! I am using WhatsApp."
+                  placeholder="E2EE active. Encrypted communications only."
                   value={aboutStatus}
                   onChange={(e) => setAboutStatus(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-sm font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                  className="w-full py-2.5 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl font-medium text-sm flex items-center justify-center space-x-2 shadow-md transition-all"
+                className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl font-bold font-mono text-xs tracking-wider flex items-center justify-center space-x-2 shadow-[0_0_20px_rgba(0,245,160,0.3)] transition-all"
               >
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Complete Account Setup</span>
+                <span>[DERIVE KEYS & COMPLETE REGISTRATION]</span>
               </button>
             </form>
           )}
@@ -902,75 +921,60 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       {/* SOCIAL OAUTH MODAL (GOOGLE / FACEBOOK) */}
       {/* ============================================================ */}
       {oauthModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white dark:bg-[#202c33] rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
-              <div className="flex items-center space-x-2.5">
-                {oauthModal === 'google' ? (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
-                    <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
-                    <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
-                    <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
-                    <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
-                  </svg>
-                ) : (
-                  <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                )}
-                <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
-                  {oauthModal === 'google' ? 'Sign in with Google' : 'Log in with Facebook'}
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#0a1122] border border-emerald-500/30 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden p-6 space-y-4 font-mono">
+            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+              <div className="flex items-center space-x-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                <h3 className="font-bold text-xs text-white uppercase tracking-wider">
+                  {oauthModal === 'google' ? 'GOOGLE OAUTH GATEWAY' : 'META OAUTH GATEWAY'}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setOauthModal(null)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="text-gray-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-gray-500">
-              Continue to WhatsApp with your {oauthModal === 'google' ? 'Google' : 'Facebook'} profile.
+            <p className="text-[11px] text-gray-400">
+              Federate credentials via {oauthModal === 'google' ? 'Google Cloud' : 'Meta Graph'} OAuth proxy.
             </p>
 
             <form onSubmit={handleCompleteSocialOAuth} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  Full Name
+                <label className="block text-[10px] uppercase text-gray-400 mb-1">
+                  Full Name / Alias
                 </label>
                 <input
                   type="text"
                   required
                   value={oauthName}
                   onChange={(e) => setOauthName(e.target.value)}
-                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                  className="w-full py-2 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                  {oauthModal === 'google' ? 'Google Account Email' : 'Facebook Account Email'}
+                <label className="block text-[10px] uppercase text-gray-400 mb-1">
+                  OAuth Account Email
                 </label>
                 <input
                   type="email"
                   required
                   value={oauthEmail}
                   onChange={(e) => setOauthEmail(e.target.value)}
-                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-medium text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                  className="w-full py-2 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
                 />
               </div>
 
               <button
                 type="submit"
-                className={`w-full py-2.5 px-4 text-white rounded-xl text-xs font-medium transition-colors shadow-sm ${
-                  oauthModal === 'google'
-                    ? 'bg-blue-600 hover:bg-blue-700'
-                    : 'bg-[#1877F2] hover:bg-[#166fe5]'
-                }`}
+                className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl text-xs font-bold font-mono tracking-wider transition-all shadow-[0_0_15px_rgba(0,245,160,0.3)]"
               >
-                Continue as {oauthName || 'User'}
+                [AUTHORIZE AS {oauthName || 'USER'}]
               </button>
             </form>
           </div>
@@ -981,31 +985,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       {/* QUICK MAIL / MOJOAUTH / SUPABASE CONFIG MODAL */}
       {/* ============================================================ */}
       {showConfigModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-white dark:bg-[#202c33] rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700 p-6 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 dark:border-gray-700 pb-3">
-              <div className="flex items-center space-x-2 text-[#00a884]">
-                <Settings className="w-5 h-5" />
-                <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
-                  Live Email API Setup
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-sm bg-[#0a1122] border border-cyan-500/30 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden p-6 space-y-4 font-mono">
+            <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
+              <div className="flex items-center space-x-2 text-cyan-400">
+                <Settings className="w-4 h-4" />
+                <h3 className="font-bold text-xs uppercase tracking-wider text-white">
+                  LIVE EMAIL API CONFIGURATION
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowConfigModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                className="text-gray-400 hover:text-white"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Enter your <span className="font-semibold text-gray-800 dark:text-gray-200">MojoAuth API Key</span> to dispatch real 6-digit OTP codes straight to your Gmail or Outlook inbox!
+            <p className="text-[11px] text-gray-400 leading-relaxed">
+              Configure your <span className="font-bold text-white">MojoAuth API Key</span> to transmit hardware-grade 6-digit OTP codes straight to your Gmail or Outlook.
             </p>
 
             <form onSubmit={handleSaveQuickConfig} className="space-y-3">
               <div>
-                <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                <label className="block text-[10px] uppercase text-gray-400 mb-1">
                   MojoAuth API Key
                 </label>
                 <input
@@ -1013,37 +1017,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   placeholder="Paste MojoAuth Key here..."
                   value={inputApiKey}
                   onChange={(e) => setInputApiKey(e.target.value)}
-                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-xl text-xs font-mono text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
+                  className="w-full py-2 px-3 bg-[#040813] border border-cyan-500/30 rounded-xl text-xs font-mono text-cyan-300 focus:outline-hidden focus:border-cyan-400"
                 />
               </div>
 
-              <div className="pt-1">
-                <a
-                  href="https://mojoauth.com"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-[#00a884] hover:underline flex items-center space-x-1"
-                >
-                  <span>Get Free MojoAuth API Key (takes 30 sec)</span>
-                  <ExternalLink className="w-3 h-3" />
-                </a>
-              </div>
-
-              <div className="pt-2 flex justify-end space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setShowConfigModal(false)}
-                  className="px-3 py-2 text-xs text-gray-500 hover:text-gray-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-[#00a884] hover:bg-[#008f70] text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-                >
-                  Save & Enable Live Mail
-                </button>
-              </div>
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-gray-950 rounded-xl text-xs font-bold font-mono tracking-wider transition-all shadow-[0_0_15px_rgba(0,210,255,0.3)]"
+              >
+                [COMMIT API CREDENTIALS]
+              </button>
             </form>
           </div>
         </div>
