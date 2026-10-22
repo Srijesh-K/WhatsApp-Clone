@@ -53,12 +53,25 @@ export function App() {
   });
 
   useEffect(() => {
+    // Set initial history state to login if not logged in
+    if (!currentUser && typeof window !== 'undefined') {
+      window.history.replaceState({ screen: 'login' }, '', window.location.pathname);
+    }
+  }, []);
+
+  useEffect(() => {
     const handlePopState = () => {
       setCurrentPath(window.location.pathname);
+      // When clicking back while in app, return to the login page
+      if (currentUser) {
+        supabaseData.logout();
+        setCurrentUser(null);
+        setActiveChatId(null);
+      }
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
+  }, [currentUser]);
 
   const navigateTo = (path: string) => {
     if (window.location.pathname !== path) {
@@ -165,6 +178,8 @@ export function App() {
           if (list.length > 0) {
             setActiveChatId(list[0].id);
           }
+          // Push state so clicking the browser Back button returns to the login page
+          window.history.pushState({ screen: 'app' }, '', window.location.pathname);
         }}
       />
     );

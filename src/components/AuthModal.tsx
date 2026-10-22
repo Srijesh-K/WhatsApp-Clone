@@ -11,7 +11,6 @@ import {
   AlertCircle,
   X,
   Settings,
-  Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { mojoAuth } from '../services/mojoauth';
@@ -87,6 +86,26 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     return () => clearInterval(interval);
   }, [step, resendTimer]);
 
+  // Handle browser back button: always return to login page if inside sub-steps
+  useEffect(() => {
+    const handlePopState = () => {
+      if (step !== 'input') {
+        setStep('input');
+        setErrorMsg(null);
+      }
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [step]);
+
+  const goToStep = (newStep: 'input' | 'otp' | 'security_check' | 'profile') => {
+    if (newStep !== 'input') {
+      window.history.pushState({ authStep: newStep }, '');
+    }
+    setStep(newStep);
+    setErrorMsg(null);
+  };
+
   const getCleanIdentifier = () => {
     if (authMethod === 'email') {
       return email.trim().toLowerCase();
@@ -94,24 +113,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       const cleanNum = phoneNumber.replace(/\D/g, '');
       return cleanNum ? `${selectedCountry.code} ${cleanNum}` : '';
     }
-  };
-
-  // Instant 1-Click Demo Login
-  const handleInstantDemoLogin = () => {
-    const demoUser: UserProfile = {
-      id: 'usr_srijesh',
-      phoneNumber: '+1 (555) 019-2834',
-      fullName: 'Srijesh Nair',
-      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
-      aboutStatus: 'Available · Using WhatsApp Web',
-      isOnline: true,
-      lastSeen: 'online',
-    };
-    supabaseData.setCurrentUser(demoUser);
-    try {
-      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-    } catch {}
-    onSuccess(demoUser);
   };
 
   // Step 1: Send OTP
@@ -149,7 +150,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           setOtpStateId(res.stateId);
           setIsRealEmailSent(!!res.isRealEmailSent);
           setResendTimer(30);
-          setStep('otp');
+          goToStep('otp');
           setOtpDigits(['', '', '', '', '', '']);
         } else {
           setErrorMsg(res.message || 'Failed to dispatch email verification code.');
@@ -159,14 +160,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         if (res.success && res.stateId) {
           setOtpStateId(res.stateId);
           setResendTimer(30);
-          setStep('otp');
+          goToStep('otp');
           setOtpDigits(['', '', '', '', '', '']);
         } else {
           setErrorMsg(res.message || 'Failed to dispatch SMS verification code.');
         }
       }
     } catch {
-      setErrorMsg('Network error. Please try again or use Quick Demo Login.');
+      setErrorMsg('Network error. Please try again.');
     } finally {
       setIsVerifying(false);
     }
@@ -223,7 +224,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       if (isValid) {
         if (existingUser) {
           if (security.isPasskeyRequired() || security.isTwoStepEnabled()) {
-            setStep('security_check');
+            goToStep('security_check');
           } else {
             supabaseData.setCurrentUser(existingUser);
             try {
@@ -232,7 +233,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             onSuccess(existingUser);
           }
         } else {
-          setStep('profile');
+          goToStep('profile');
         }
       } else {
         setErrorMsg('Invalid verification code. Please try 123456 or check your mail.');
@@ -381,22 +382,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {/* ============================================================ */}
           {step === 'input' && (
             <div className="space-y-4">
-              {/* Quick Demo Login Button - Instant Access */}
-              <button
-                type="button"
-                onClick={handleInstantDemoLogin}
-                className="w-full py-2.5 px-4 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-[#008069] dark:text-[#00a884] border border-[#00a884]/40 rounded-lg text-sm font-semibold flex items-center justify-center space-x-2 transition-all shadow-xs cursor-pointer"
-              >
-                <Sparkles className="w-4 h-4 text-[#00a884]" />
-                <span>Quick Demo Login (1-Click)</span>
-              </button>
-
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-                <span className="shrink mx-3 text-xs text-gray-400">or sign in with</span>
-                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-              </div>
-
               {/* Mode Toggle */}
               <div className="flex bg-gray-100 dark:bg-[#111b21] p-1 rounded-lg">
                 <button
@@ -638,13 +623,28 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {/* ============================================================ */}
           {step === 'security_check' && (
             <div className="space-y-4 text-center">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('input');
+                    setErrorMsg(null);
+                  }}
+                  className="p-1 rounded-full text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+                  title="Back to login"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Two-Step Verification
+                </div>
+                <div className="w-5" />
+              </div>
+
               <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-[#00a884] mx-auto">
                 <KeyRound className="w-7 h-7" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
-                  Two-Step Verification
-                </h3>
                 <p className="text-xs text-gray-500 mt-1">
                   Enter your secret 6-digit PIN to continue.
                 </p>
@@ -674,13 +674,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {/* ============================================================ */}
           {step === 'profile' && (
             <form onSubmit={handleFinishProfile} className="space-y-4">
-              <div className="text-center">
-                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('input');
+                    setErrorMsg(null);
+                  }}
+                  className="p-1 rounded-full text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+                  title="Back to login"
+                >
+                  <ArrowLeft className="w-5 h-5" />
+                </button>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">
                   Profile Info
-                </h3>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Please provide your name and an optional profile picture.
-                </p>
+                </div>
+                <div className="w-5" />
               </div>
 
               <div className="flex flex-col items-center space-y-2">
