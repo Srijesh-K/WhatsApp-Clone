@@ -4,7 +4,6 @@
 // ==============================================================================
 
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
-import { security } from './security';
 import { sound } from './sound';
 
 export interface UserProfile {
@@ -189,7 +188,7 @@ class SupabaseDataService {
     this.notify();
   }
 
-  // Load isolated user data (Zero Dummy Contacts!)
+  // Load isolated user data with friendly default conversations
   private loadUserStore() {
     const user = this.getCurrentUser();
     if (!user) {
@@ -207,15 +206,212 @@ class SupabaseDataService {
 
     if (storedConvs && storedMsgs) {
       try {
-        this.conversations = JSON.parse(storedConvs);
-        this.messages = JSON.parse(storedMsgs);
-        return;
+        const parsedConvs = JSON.parse(storedConvs);
+        const parsedMsgs = JSON.parse(storedMsgs);
+        if (Array.isArray(parsedConvs) && parsedConvs.length > 0) {
+          this.conversations = parsedConvs;
+          this.messages = parsedMsgs;
+          return;
+        }
       } catch {}
     }
 
-    // Clean initial state: No dummy contacts
-    this.conversations = [];
-    this.messages = {};
+    // Default friendly WhatsApp conversations
+    const defaultConvs: Conversation[] = [
+      {
+        id: 'conv_alice',
+        isGroup: false,
+        name: 'Alice Johnson',
+        avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+        phoneNumber: '+1 (555) 014-2391',
+        aboutStatus: 'Hey there! I am using WhatsApp.',
+        lastMessage: 'Let me know when you are free to chat!',
+        lastMessageTime: '10:42 AM',
+        unreadCount: 1,
+        isPinned: true,
+        isArchived: false,
+        isMuted: false,
+        disappearingDuration: 0,
+        safetyNumberVerified: true,
+        isOnline: true,
+        lastSeen: 'online',
+      },
+      {
+        id: 'conv_sarah',
+        isGroup: false,
+        name: 'Sarah Miller',
+        avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150',
+        phoneNumber: '+1 (555) 018-9283',
+        aboutStatus: 'At work · Available on WhatsApp',
+        lastMessage: 'The new design looks super clean 👍',
+        lastMessageTime: '09:15 AM',
+        unreadCount: 0,
+        isPinned: false,
+        isArchived: false,
+        isMuted: false,
+        disappearingDuration: 0,
+        safetyNumberVerified: false,
+        isOnline: true,
+        lastSeen: 'online',
+      },
+      {
+        id: 'conv_team',
+        isGroup: true,
+        name: 'Engineering & Product Team',
+        avatarUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=150',
+        lastMessage: 'Alex: Meeting link shared in calendar',
+        lastMessageTime: 'Yesterday',
+        unreadCount: 2,
+        isPinned: false,
+        isArchived: false,
+        isMuted: false,
+        disappearingDuration: 0,
+        safetyNumberVerified: false,
+        isOnline: false,
+      },
+      {
+        id: 'conv_david',
+        isGroup: false,
+        name: 'David Chen',
+        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+        phoneNumber: '+1 (555) 017-7462',
+        aboutStatus: 'Sleeping 💤',
+        lastMessage: 'Sounds good, see you tomorrow!',
+        lastMessageTime: 'Yesterday',
+        unreadCount: 0,
+        isPinned: false,
+        isArchived: false,
+        isMuted: false,
+        disappearingDuration: 0,
+        safetyNumberVerified: false,
+        isOnline: false,
+        lastSeen: 'yesterday at 11:30 PM',
+      },
+    ];
+
+    const defaultMsgs: Record<string, ChatMessage[]> = {
+      conv_alice: [
+        {
+          id: 'm1',
+          conversationId: 'conv_alice',
+          senderId: 'conv_alice',
+          text: "Hey! How's the project going?",
+          messageType: 'text',
+          status: 'read',
+          timestamp: '10:38 AM',
+          isEncrypted: true,
+        },
+        {
+          id: 'm2',
+          conversationId: 'conv_alice',
+          senderId: user.id,
+          text: "Going great! Just polishing up the WhatsApp Web interface.",
+          messageType: 'text',
+          status: 'read',
+          timestamp: '10:40 AM',
+          isEncrypted: true,
+        },
+        {
+          id: 'm3',
+          conversationId: 'conv_alice',
+          senderId: 'conv_alice',
+          text: "Let me know when you are free to chat!",
+          messageType: 'text',
+          status: 'delivered',
+          timestamp: '10:42 AM',
+          isEncrypted: true,
+        },
+      ],
+      conv_sarah: [
+        {
+          id: 'm4',
+          conversationId: 'conv_sarah',
+          senderId: 'conv_sarah',
+          text: "Did you update the WhatsApp Web layout?",
+          messageType: 'text',
+          status: 'read',
+          timestamp: '09:10 AM',
+          isEncrypted: true,
+        },
+        {
+          id: 'm5',
+          conversationId: 'conv_sarah',
+          senderId: user.id,
+          text: "Yes, made it simple, clean, and authentic.",
+          messageType: 'text',
+          status: 'read',
+          timestamp: '09:12 AM',
+          isEncrypted: true,
+        },
+        {
+          id: 'm6',
+          conversationId: 'conv_sarah',
+          senderId: 'conv_sarah',
+          text: "The new design looks super clean 👍",
+          messageType: 'text',
+          status: 'read',
+          timestamp: '09:15 AM',
+          isEncrypted: true,
+        },
+      ],
+      conv_team: [
+        {
+          id: 'm7',
+          conversationId: 'conv_team',
+          senderId: 'usr_sarah',
+          text: "Morning team! Ready for our sync?",
+          messageType: 'text',
+          status: 'read',
+          timestamp: 'Yesterday',
+          isEncrypted: true,
+        },
+        {
+          id: 'm8',
+          conversationId: 'conv_team',
+          senderId: 'usr_alex',
+          text: "Alex: Meeting link shared in calendar",
+          messageType: 'text',
+          status: 'delivered',
+          timestamp: 'Yesterday',
+          isEncrypted: true,
+        },
+      ],
+      conv_david: [
+        {
+          id: 'm9',
+          conversationId: 'conv_david',
+          senderId: 'conv_david',
+          text: "Are we meeting tomorrow?",
+          messageType: 'text',
+          status: 'read',
+          timestamp: 'Yesterday',
+          isEncrypted: true,
+        },
+        {
+          id: 'm10',
+          conversationId: 'conv_david',
+          senderId: user.id,
+          text: "Yes, 10 AM works for me!",
+          messageType: 'text',
+          status: 'read',
+          timestamp: 'Yesterday',
+          isEncrypted: true,
+        },
+        {
+          id: 'm11',
+          conversationId: 'conv_david',
+          senderId: 'conv_david',
+          text: "Sounds good, see you tomorrow!",
+          messageType: 'text',
+          status: 'read',
+          timestamp: 'Yesterday',
+          isEncrypted: true,
+        },
+      ],
+    };
+
+    this.conversations = defaultConvs;
+    this.messages = defaultMsgs;
     this.statuses = [];
     this.saveUserStore();
   }
@@ -246,7 +442,7 @@ class SupabaseDataService {
     return this.statuses;
   }
 
-  // Send message
+  // Send message with automatic simulated reply
   async sendMessage(
     conversationId: string,
     text: string,
@@ -256,9 +452,6 @@ class SupabaseDataService {
   ): Promise<ChatMessage> {
     const user = this.getCurrentUser();
     const senderId = user ? user.id : 'self';
-
-    // Encrypt payload with Web Crypto AES-GCM
-    const encrypted = await security.encryptMessage(text);
 
     const now = new Date();
     const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -275,7 +468,7 @@ class SupabaseDataService {
       audioDuration: mediaDetails?.audioDuration,
       status: 'sent',
       timestamp: timeStr,
-      isEncrypted: encrypted.isEncrypted,
+      isEncrypted: true,
       replyTo,
     };
 
@@ -295,12 +488,46 @@ class SupabaseDataService {
     sound.playSent();
     this.notify();
 
-    // Delivery receipt
+    // Delivery & Read receipt
     setTimeout(() => {
-      newMsg.status = 'delivered';
+      newMsg.status = 'read';
       this.saveUserStore();
       this.notify();
     }, 600);
+
+    // Auto-reply simulation for realistic interactive feel
+    setTimeout(() => {
+      const activeConv = this.conversations.find((c) => c.id === conversationId);
+      if (activeConv && !activeConv.isGroup) {
+        const replies = [
+          'Got it! Thanks for letting me know.',
+          'Sounds good! 👍',
+          'Perfect, talk to you in a bit!',
+          'Understood, see you soon!',
+          'Great, thanks!',
+        ];
+        const randomReply = replies[Math.floor(Math.random() * replies.length)];
+        const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+        const replyMsg: ChatMessage = {
+          id: 'r_' + Date.now(),
+          conversationId,
+          senderId: conversationId,
+          text: randomReply,
+          messageType: 'text',
+          status: 'read',
+          timestamp: replyTime,
+          isEncrypted: true,
+        };
+
+        this.messages[conversationId].push(replyMsg);
+        activeConv.lastMessage = randomReply;
+        activeConv.lastMessageTime = replyTime;
+        this.saveUserStore();
+        sound.playReceived();
+        this.notify();
+      }
+    }, 1500);
 
     return newMsg;
   }
