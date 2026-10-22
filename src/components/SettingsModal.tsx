@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Database, Key, Copy, Check, ExternalLink, ShieldCheck, Moon, Sun, Cpu } from 'lucide-react';
+import { X, Database, Key, Copy, Check, ExternalLink, ShieldCheck, Moon, Sun, Settings } from 'lucide-react';
 import { supabaseData } from '../services/supabase';
 import { mojoAuth } from '../services/mojoauth';
 
@@ -124,120 +124,111 @@ USING (EXISTS (SELECT 1 FROM public.participants WHERE participants.conversation
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-[#0d1418] border border-cyan-500/30 rounded-2xl shadow-2xl shadow-cyan-950/40 overflow-hidden flex flex-col max-h-[90vh] cyber-grid-dark">
-        {/* Terminal Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0a0f12] border-b border-cyan-500/20 text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-lg bg-[#111b21] border border-[#222e35] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[#202c33] border-b border-[#222e35] text-[#e9edef]">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Database className="w-5 h-5" />
+            <div className="w-9 h-9 rounded-full bg-[#00a884]/20 flex items-center justify-center text-[#00a884]">
+              <Settings className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-sm font-bold tracking-wider text-slate-100 font-mono">
-                  CLOUD_GATEWAY // CONFIG
-                </h2>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
-                  POSTGRES_RLS
-                </span>
-              </div>
-              <p className="text-[10px] font-mono text-cyan-400/60 mt-0.5">
-                REALTIME REPLICATION • APIS • DDL SCHEMA
-              </p>
+              <h2 className="text-base font-semibold text-[#e9edef]">Settings</h2>
+              <p className="text-xs text-[#8696a0]">Backend connection and authentication settings</p>
             </div>
           </div>
           <div className="flex items-center space-x-2">
             <button
               onClick={onToggleTheme}
-              className="p-1.5 rounded-lg border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-colors text-slate-400 hover:text-white"
-              title="Toggle Cyber HUD theme"
+              className="p-2 rounded-full hover:bg-[#374248] text-[#aebac1] hover:text-[#e9edef] transition-colors"
+              title="Toggle theme"
             >
-              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-cyan-400" />}
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-[#00a884]" />}
             </button>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-colors text-slate-400 hover:text-white"
+              className="p-2 rounded-full hover:bg-[#374248] text-[#aebac1] hover:text-[#e9edef] transition-colors"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-cyan-500/20 bg-[#090d10] px-4 font-mono text-xs">
+        <div className="flex border-b border-[#222e35] bg-[#202c33]/50 px-6 text-xs">
           <button
             onClick={() => setActiveTab('supabase')}
-            className={`py-3 px-4 uppercase tracking-wider flex items-center space-x-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-medium flex items-center space-x-2 border-b-2 transition-all ${
               activeTab === 'supabase'
-                ? 'border-cyan-400 text-cyan-300 bg-cyan-500/5'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-[#8696a0] hover:text-[#e9edef]'
             }`}
           >
-            <Database className="w-4 h-4 text-cyan-400" />
-            <span>[SUPABASE]</span>
+            <Database className="w-4 h-4" />
+            <span>Supabase</span>
           </button>
           <button
             onClick={() => setActiveTab('mojoauth')}
-            className={`py-3 px-4 uppercase tracking-wider flex items-center space-x-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-medium flex items-center space-x-2 border-b-2 transition-all ${
               activeTab === 'mojoauth'
-                ? 'border-emerald-400 text-emerald-300 bg-emerald-500/5'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-[#8696a0] hover:text-[#e9edef]'
             }`}
           >
-            <Key className="w-4 h-4 text-emerald-400" />
-            <span>[MOJOAUTH]</span>
+            <Key className="w-4 h-4" />
+            <span>MojoAuth</span>
           </button>
           <button
             onClick={() => setActiveTab('sql')}
-            className={`py-3 px-4 uppercase tracking-wider flex items-center space-x-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-medium flex items-center space-x-2 border-b-2 transition-all ${
               activeTab === 'sql'
-                ? 'border-purple-400 text-purple-300 bg-purple-500/5'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-[#8696a0] hover:text-[#e9edef]'
             }`}
           >
-            <Copy className="w-4 h-4 text-purple-400" />
-            <span>[DDL SCHEMA]</span>
+            <Copy className="w-4 h-4" />
+            <span>Database SQL</span>
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-slate-300 font-sans">
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-[#e9edef]">
           {/* TAB 1: SUPABASE */}
           {activeTab === 'supabase' && (
             <form onSubmit={handleSaveSupabase} className="space-y-4">
-              <div className="p-4 bg-[#0a1014] rounded-xl border border-cyan-500/20 space-y-1">
-                <div className="text-xs font-mono font-bold text-slate-100 flex items-center space-x-2 uppercase">
-                  <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                  <span>SUPABASE REALTIME SYNCHRONIZATION</span>
+              <div className="p-4 bg-[#202c33] rounded-xl border border-[#2a3942] space-y-1">
+                <div className="text-xs font-semibold text-[#e9edef] flex items-center space-x-2">
+                  <ShieldCheck className="w-4 h-4 text-[#00a884]" />
+                  <span>Supabase Realtime Database</span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                  Configures PostgreSQL WebSocket replication with Row-Level Security (RLS). Automatically synchronizes ciphertext packets, contacts, and public key registries.
+                <p className="text-xs text-[#8696a0] leading-relaxed">
+                  Connect your live Supabase backend to enable multi-device synchronization, online status tracking, and encrypted message delivery.
                 </p>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-                  PROJECT_ENDPOINT_URL
+                <label className="block text-xs font-medium text-[#8696a0] mb-1.5">
+                  Project URL
                 </label>
                 <input
                   type="url"
-                  placeholder="https://your-project-id.supabase.co"
+                  placeholder="https://your-project.supabase.co"
                   value={supabaseUrl}
                   onChange={(e) => setSupabaseUrl(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-[#0a0f12] border border-cyan-500/30 text-cyan-300 rounded-xl text-xs font-mono focus:outline-hidden focus:border-cyan-400"
+                  className="w-full py-2.5 px-3 bg-[#202c33] border border-[#2a3942] text-[#e9edef] rounded-lg text-sm focus:outline-hidden focus:border-[#00a884] placeholder:text-[#8696a0]"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-                  ANON_PUBLIC_KEY
+                <label className="block text-xs font-medium text-[#8696a0] mb-1.5">
+                  Anon / Public Key
                 </label>
                 <input
                   type="password"
                   placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
                   value={supabaseAnonKey}
                   onChange={(e) => setSupabaseAnonKey(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-[#0a0f12] border border-cyan-500/30 text-cyan-300 rounded-xl text-xs font-mono focus:outline-hidden focus:border-cyan-400"
+                  className="w-full py-2.5 px-3 bg-[#202c33] border border-[#2a3942] text-[#e9edef] rounded-lg text-sm focus:outline-hidden focus:border-[#00a884] placeholder:text-[#8696a0]"
                 />
               </div>
 
@@ -246,17 +237,17 @@ USING (EXISTS (SELECT 1 FROM public.participants WHERE participants.conversation
                   href="https://supabase.com/dashboard"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-mono text-cyan-400 hover:text-cyan-300 flex items-center space-x-1"
+                  className="text-xs text-[#00a884] hover:underline flex items-center space-x-1"
                 >
-                  <span>SUPABASE_DASHBOARD</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <span>Open Supabase Dashboard</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
                 </a>
 
                 <button
                   type="submit"
-                  className="py-2.5 px-5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-slate-900 font-mono font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-cyan-950/40 transition-all"
+                  className="py-2.5 px-5 bg-[#00a884] hover:bg-[#008f6f] text-white font-medium text-xs rounded-lg shadow-sm transition-all cursor-pointer"
                 >
-                  {supabaseSaved ? 'CONFIG_COMMITTED!' : 'COMMIT_CONFIG'}
+                  {supabaseSaved ? 'Saved!' : 'Save changes'}
                 </button>
               </div>
             </form>
@@ -265,26 +256,26 @@ USING (EXISTS (SELECT 1 FROM public.participants WHERE participants.conversation
           {/* TAB 2: MOJOAUTH */}
           {activeTab === 'mojoauth' && (
             <form onSubmit={handleSaveMojoAuth} className="space-y-4">
-              <div className="p-4 bg-[#0a1014] rounded-xl border border-emerald-500/20 space-y-1">
-                <div className="text-xs font-mono font-bold text-slate-100 flex items-center space-x-2 uppercase">
-                  <Key className="w-4 h-4 text-emerald-400" />
-                  <span>MOJOAUTH PASSWORDLESS DISPATCH</span>
+              <div className="p-4 bg-[#202c33] rounded-xl border border-[#2a3942] space-y-1">
+                <div className="text-xs font-semibold text-[#e9edef] flex items-center space-x-2">
+                  <Key className="w-4 h-4 text-[#00a884]" />
+                  <span>MojoAuth Passwordless Login</span>
                 </div>
-                <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                  Direct integration with MojoAuth identity dispatch. Delivers cryptographic one-time authentication codes to user email/SMS out-of-band.
+                <p className="text-xs text-[#8696a0] leading-relaxed">
+                  Enter your MojoAuth API key to enable passwordless magic link & OTP authentication directly to user email or phone.
                 </p>
               </div>
 
               <div>
-                <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-                  MOJOAUTH_API_KEY
+                <label className="block text-xs font-medium text-[#8696a0] mb-1.5">
+                  MojoAuth API Key
                 </label>
                 <input
                   type="password"
                   placeholder="mojo_api_key_..."
                   value={mojoApiKey}
                   onChange={(e) => setMojoApiKey(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-[#0a0f12] border border-emerald-500/30 text-emerald-300 rounded-xl text-xs font-mono focus:outline-hidden focus:border-emerald-400"
+                  className="w-full py-2.5 px-3 bg-[#202c33] border border-[#2a3942] text-[#e9edef] rounded-lg text-sm focus:outline-hidden focus:border-[#00a884] placeholder:text-[#8696a0]"
                 />
               </div>
 
@@ -293,17 +284,17 @@ USING (EXISTS (SELECT 1 FROM public.participants WHERE participants.conversation
                   href="https://mojoauth.com"
                   target="_blank"
                   rel="noreferrer"
-                  className="text-xs font-mono text-emerald-400 hover:text-emerald-300 flex items-center space-x-1"
+                  className="text-xs text-[#00a884] hover:underline flex items-center space-x-1"
                 >
-                  <span>MOJOAUTH_CONSOLE</span>
-                  <ExternalLink className="w-3 h-3" />
+                  <span>Get MojoAuth Key</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
                 </a>
 
                 <button
                   type="submit"
-                  className="py-2.5 px-5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-900 font-mono font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all"
+                  className="py-2.5 px-5 bg-[#00a884] hover:bg-[#008f6f] text-white font-medium text-xs rounded-lg shadow-sm transition-all cursor-pointer"
                 >
-                  {mojoSaved ? 'API_KEY_COMMITTED!' : 'RATIFY_API_KEY'}
+                  {mojoSaved ? 'Saved!' : 'Save changes'}
                 </button>
               </div>
             </form>
@@ -313,51 +304,46 @@ USING (EXISTS (SELECT 1 FROM public.participants WHERE participants.conversation
           {activeTab === 'sql' && (
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <p className="text-xs font-mono text-slate-400">
-                  Postgres DDL statements with Row-Level Security definitions:
+                <p className="text-xs text-[#8696a0]">
+                  Run this SQL in Supabase SQL Editor to set up required tables and security policies:
                 </p>
                 <button
                   onClick={handleCopySql}
-                  className="py-1.5 px-3 bg-[#111a20] hover:bg-[#16232b] text-cyan-300 border border-cyan-500/30 font-mono text-xs rounded-lg flex items-center space-x-1.5 transition-colors"
+                  className="py-1.5 px-3 bg-[#202c33] hover:bg-[#2a3942] text-[#00a884] border border-[#2a3942] text-xs font-medium rounded-lg flex items-center space-x-1.5 transition-colors cursor-pointer"
                 >
-                  {copiedSql ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedSql ? 'BUFFER_COPIED' : 'COPY_DDL'}</span>
+                  {copiedSql ? <Check className="w-3.5 h-3.5 text-[#00a884]" /> : <Copy className="w-3.5 h-3.5" />}
+                  <span>{copiedSql ? 'Copied!' : 'Copy SQL'}</span>
                 </button>
               </div>
 
-              <pre className="p-3 bg-[#070b0e] text-cyan-400 font-mono text-[11px] rounded-xl overflow-x-auto max-h-64 leading-relaxed border border-cyan-500/20">
-                {`-- Supabase Cryptographic Schema & RLS
+              <pre className="p-3 bg-[#0c1317] text-[#8696a0] font-mono text-[11px] rounded-xl overflow-x-auto max-h-64 leading-relaxed border border-[#222e35]">
+                {`-- Supabase Schema & Row-Level Security
 CREATE TABLE public.profiles (...);
 CREATE TABLE public.passkeys (...);
-CREATE TABLE public.devices (...);
 CREATE TABLE public.conversations (...);
 CREATE TABLE public.participants (...);
 CREATE TABLE public.messages (...);
 
 -- RLS Enforcement
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "E2EE Isolation" ON public.messages FOR SELECT
-USING (participants.user_id = auth.uid());`}
+CREATE POLICY "Users can only read chats they belong to"
+ON public.messages FOR SELECT TO authenticated
+USING (EXISTS (SELECT 1 FROM public.participants WHERE participants.conversation_id = messages.conversation_id AND participants.user_id = auth.uid()));`}
               </pre>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-[#0a0f12] border-t border-cyan-500/20 flex items-center justify-between font-mono text-[10px] text-slate-500">
-          <span className="flex items-center space-x-1">
-            <Cpu className="w-3 h-3 text-cyan-400" />
-            <span>NODE_TELEMETRY: ONLINE</span>
-          </span>
+        <div className="px-6 py-3 bg-[#202c33] border-t border-[#222e35] flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg uppercase tracking-wider transition-colors font-mono"
+            className="px-5 py-2 bg-[#00a884] hover:bg-[#008f6f] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
           >
-            CLOSE_PANEL [ESC]
+            Done
           </button>
         </div>
       </div>
     </div>
   );
 };
-
