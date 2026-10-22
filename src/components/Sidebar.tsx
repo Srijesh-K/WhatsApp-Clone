@@ -13,9 +13,6 @@ import {
   Settings,
   LogOut,
   ShieldAlert,
-  Terminal,
-  Cpu,
-  Radio,
 } from 'lucide-react';
 import { supabaseData } from '../services/supabase';
 import type { Conversation, UserProfile } from '../services/supabase';
@@ -54,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Close menu when clicking outside / other side
+  // Close menu when clicking outside
   useEffect(() => {
     if (!menuOpen) return;
     const handleClickOutside = (e: MouseEvent | TouchEvent) => {
@@ -73,9 +70,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Filter conversations
   const filtered = conversations.filter((c) => {
     if (searchQuery.trim()) {
-      const matchName = c.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchPhone = c.phoneNumber?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchMsg = c.lastMessage?.toLowerCase().includes(searchQuery.toLowerCase());
+      const q = searchQuery.toLowerCase();
+      const matchName = c.name.toLowerCase().includes(q);
+      const matchPhone = c.phoneNumber?.toLowerCase().includes(q);
+      const matchMsg = c.lastMessage?.toLowerCase().includes(q);
       if (!matchName && !matchPhone && !matchMsg) return false;
     }
 
@@ -85,117 +83,115 @@ export const Sidebar: React.FC<SidebarProps> = ({
   });
 
   return (
-    <div className="w-full md:w-96 lg:w-[410px] h-full bg-[#050b17] border-r border-emerald-500/20 flex flex-col select-none shrink-0 font-sans">
-      {/* Top Header Command Bar */}
-      <div className="h-16 px-4 bg-[#081022] flex items-center justify-between border-b border-emerald-500/20 shrink-0 relative">
-        {/* User profile & telemetry */}
-        <div className="flex items-center space-x-3 cursor-pointer group">
-          <div className="relative">
-            <img
-              src={currentUser.avatarUrl}
-              alt={currentUser.fullName}
-              className="w-10 h-10 rounded-xl object-cover border border-emerald-400/40 p-0.5 bg-[#040813] shadow-[0_0_10px_rgba(0,245,160,0.2)]"
-            />
-            <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 rounded-full ring-2 ring-[#081022] radar-online" />
-          </div>
+    <div className="w-full md:w-96 lg:w-[410px] h-full bg-white dark:bg-[#111b21] border-r border-gray-200 dark:border-gray-800 flex flex-col shrink-0 font-sans select-none">
+      {/* Top Header */}
+      <div className="h-15 px-4 bg-[#f0f2f5] dark:bg-[#202c33] flex items-center justify-between shrink-0">
+        {/* User Profile */}
+        <div className="flex items-center space-x-3 cursor-pointer">
+          <img
+            src={currentUser.avatarUrl}
+            alt={currentUser.fullName}
+            className="w-10 h-10 rounded-full object-cover bg-gray-200 dark:bg-gray-700"
+          />
           <div className="hidden lg:block min-w-0">
-            <div className="text-xs font-bold font-mono text-white truncate max-w-[130px] flex items-center space-x-1">
-              <span>{currentUser.fullName}</span>
-            </div>
-            <div className="text-[10px] font-mono text-emerald-400/70 truncate flex items-center space-x-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>NODE: ACTIVE // E2EE</span>
-            </div>
+            <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate block">
+              {currentUser.fullName}
+            </span>
           </div>
         </div>
 
         {/* Action icons */}
-        <div className="flex items-center space-x-1 text-gray-300">
+        <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-300">
           {/* Status Stories Button */}
           <button
             onClick={onOpenStatusStories}
-            className="p-2 rounded-lg bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-all relative"
-            title="Encrypted Status Broadcasts"
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700/60 transition-colors cursor-pointer"
+            title="Status"
           >
-            <CircleDashed className="w-4 h-4 text-emerald-400" />
-            <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-emerald-400 rounded-full" />
+            <CircleDashed className="w-5 h-5" />
           </button>
 
           {/* New Chat Button */}
           <button
             onClick={onOpenNewChat}
-            className="p-2 rounded-lg bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-all"
-            title="Initialize New Encrypted Channel"
+            className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700/60 transition-colors cursor-pointer"
+            title="New Chat"
           >
-            <MessageSquarePlus className="w-4 h-4 text-emerald-400" />
+            <MessageSquarePlus className="w-5 h-5" />
           </button>
 
-          {/* Menu Dropdown */}
+          {/* 3-Dots Menu Dropdown */}
           <div className="relative" ref={menuRef}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setMenuOpen((prev) => !prev);
               }}
-              className="p-2 rounded-lg bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-all"
-              title="System Menu"
+              className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700/60 transition-colors cursor-pointer"
+              title="Menu"
             >
-              <MoreVertical className="w-4 h-4" />
+              <MoreVertical className="w-5 h-5" />
             </button>
 
             {menuOpen && (
               <>
-                {/* Transparent backdrop overlay so clicking the other side closes the menu */}
+                {/* Backdrop overlay so clicking anywhere closes menu */}
                 <div
                   className="fixed inset-0 z-40 bg-transparent"
                   onClick={() => setMenuOpen(false)}
                 />
                 <div
-                  className="absolute right-0 top-12 w-60 bg-[#0a1329] rounded-xl shadow-[0_0_30px_rgba(0,0,0,0.8)] py-2 border border-emerald-500/30 z-50 animate-in fade-in zoom-in-95 duration-100 text-xs font-mono text-gray-200 backdrop-blur-xl"
+                  className="absolute right-0 top-11 w-56 bg-white dark:bg-[#233138] rounded-lg shadow-xl py-2 border border-gray-100 dark:border-gray-700/50 z-50 animate-in fade-in zoom-in-95 duration-100 text-sm text-gray-800 dark:text-gray-200"
                   onClick={() => setMenuOpen(false)}
                 >
                   <button
-                    onClick={onOpenPasskeys}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-emerald-300"
+                    onClick={onOpenNewChat}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors cursor-pointer"
                   >
-                    <KeyRound className="w-4 h-4 text-emerald-400" />
-                    <span>Passkeys & Biometrics</span>
+                    <span>New chat</span>
                   </button>
                   <button
                     onClick={onOpenLinkedDevices}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-cyan-300"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors cursor-pointer"
                   >
-                    <Laptop className="w-4 h-4 text-cyan-400" />
-                    <span>Hardware Linked Devices</span>
+                    <Laptop className="w-4 h-4 text-gray-500" />
+                    <span>Linked devices</span>
+                  </button>
+                  <button
+                    onClick={onOpenPasskeys}
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors cursor-pointer"
+                  >
+                    <KeyRound className="w-4 h-4 text-gray-500" />
+                    <span>Passkeys & security</span>
                   </button>
                   <button
                     onClick={onLockApp}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-amber-300"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors cursor-pointer"
                   >
-                    <Lock className="w-4 h-4 text-amber-400" />
-                    <span>Lock Security Enclave</span>
+                    <Lock className="w-4 h-4 text-gray-500" />
+                    <span>Lock WhatsApp</span>
                   </button>
-                  <div className="my-1 border-t border-emerald-500/15" />
+                  <div className="my-1 border-t border-gray-200 dark:border-gray-700" />
                   <button
                     onClick={onOpenSettings}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-gray-300"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] transition-colors cursor-pointer"
                   >
-                    <Settings className="w-4 h-4 text-gray-400" />
-                    <span>Supabase & MojoAuth Hub</span>
+                    <Settings className="w-4 h-4 text-gray-500" />
+                    <span>Settings</span>
                   </button>
                   <button
                     onClick={onOpenAdmin}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-emerald-400 font-bold"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] text-[#00a884] font-medium transition-colors cursor-pointer"
                   >
-                    <ShieldAlert className="w-4 h-4 text-emerald-400" />
-                    <span>System Admin Console</span>
+                    <ShieldAlert className="w-4 h-4" />
+                    <span>Admin console</span>
                   </button>
                   <button
                     onClick={onLogout}
-                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-[#0f1d3d] text-red-400"
+                    className="w-full px-4 py-2.5 text-left flex items-center space-x-3 hover:bg-gray-100 dark:hover:bg-[#182229] text-red-500 transition-colors cursor-pointer"
                   >
-                    <LogOut className="w-4 h-4 text-red-400" />
-                    <span>Terminate Session</span>
+                    <LogOut className="w-4 h-4" />
+                    <span>Log out</span>
                   </button>
                 </div>
               </>
@@ -204,75 +200,74 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Cyber Search Bar & Filter Pills */}
-      <div className="p-3 border-b border-emerald-500/15 space-y-2.5 bg-[#060d1d] shrink-0">
+      {/* Search Bar & Filter Chips */}
+      <div className="p-2 border-b border-gray-200 dark:border-gray-800 space-y-2 bg-white dark:bg-[#111b21] shrink-0">
         <div className="relative flex items-center">
-          <div className="absolute left-3 text-emerald-400/60">
+          <div className="absolute left-3 text-gray-400">
             <Search className="w-4 h-4" />
           </div>
           <input
             type="text"
-            placeholder="QUERY ENCRYPTED NODES... [⌘K]"
+            placeholder="Search or start new chat"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-8 py-2 bg-[#040813] border border-emerald-500/25 text-emerald-300 rounded-xl text-xs font-mono placeholder-gray-500 focus:outline-hidden focus:border-emerald-400 focus:shadow-[0_0_12px_rgba(0,245,160,0.2)] transition-all"
+            className="w-full pl-9 pr-8 py-1.5 bg-[#f0f2f5] dark:bg-[#202c33] text-gray-900 dark:text-gray-100 rounded-lg text-sm placeholder-gray-500 focus:outline-hidden"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery('')}
-              className="absolute right-2.5 text-xs font-mono text-gray-400 hover:text-white"
+              className="absolute right-2.5 text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer"
             >
               ✕
             </button>
           )}
         </div>
 
-        {/* Filter Pills */}
-        <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar font-mono">
+        {/* Filter Chips */}
+        <div className="flex items-center space-x-2 px-1">
           <button
             onClick={() => setFilterType('all')}
-            className={`px-3 py-1 rounded-lg text-[11px] font-semibold tracking-wider transition-all ${
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
               filterType === 'all'
-                ? 'bg-emerald-500 text-gray-950 shadow-[0_0_12px_rgba(0,245,160,0.3)]'
-                : 'bg-[#09142b] border border-emerald-500/20 text-gray-400 hover:text-white'
+                ? 'bg-[#00a884] text-white'
+                : 'bg-gray-100 dark:bg-[#202c33] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            [ALL NODES]
+            All
           </button>
           <button
             onClick={() => setFilterType('unread')}
-            className={`px-3 py-1 rounded-lg text-[11px] font-semibold tracking-wider transition-all ${
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
               filterType === 'unread'
-                ? 'bg-emerald-500 text-gray-950 shadow-[0_0_12px_rgba(0,245,160,0.3)]'
-                : 'bg-[#09142b] border border-emerald-500/20 text-gray-400 hover:text-white'
+                ? 'bg-[#00a884] text-white'
+                : 'bg-gray-100 dark:bg-[#202c33] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            [UNREAD]
+            Unread
           </button>
           <button
             onClick={() => setFilterType('groups')}
-            className={`px-3 py-1 rounded-lg text-[11px] font-semibold tracking-wider transition-all ${
+            className={`px-3 py-1 rounded-full text-xs font-medium transition-colors cursor-pointer ${
               filterType === 'groups'
-                ? 'bg-emerald-500 text-gray-950 shadow-[0_0_12px_rgba(0,245,160,0.3)]'
-                : 'bg-[#09142b] border border-emerald-500/20 text-gray-400 hover:text-white'
+                ? 'bg-[#00a884] text-white'
+                : 'bg-gray-100 dark:bg-[#202c33] text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
             }`}
           >
-            [SECURE GROUPS]
+            Groups
           </button>
         </div>
       </div>
 
       {/* Conversations List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-emerald-500/10">
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-800/40">
         {filtered.length === 0 ? (
-          <div className="p-8 text-center text-gray-400 text-xs font-mono space-y-3">
-            <Radio className="w-8 h-8 text-emerald-400/40 mx-auto animate-pulse" />
-            <div>NO ACTIVE ENCRYPTED NODES FOUND</div>
+          <div className="p-8 text-center text-gray-400 text-sm space-y-2">
+            <div>No chats found</div>
             <button
               onClick={onOpenNewChat}
-              className="text-emerald-400 hover:underline font-bold"
+              className="text-[#00a884] hover:underline font-medium text-xs cursor-pointer"
             >
-              [+ INITIALIZE FIRST CHANNEL]
+              Start a new chat
             </button>
           </div>
         ) : (
@@ -286,10 +281,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onSelectChat(conv);
                   supabaseData.markAsRead(conv.id);
                 }}
-                className={`flex items-center px-3.5 py-3 cursor-pointer transition-all relative group ${
+                className={`flex items-center px-3.5 py-3 cursor-pointer transition-colors ${
                   isActive
-                    ? 'bg-[#0d1a38] border-l-2 border-emerald-400 shadow-inner'
-                    : 'hover:bg-[#081226]'
+                    ? 'bg-[#f0f2f5] dark:bg-[#2a3942]'
+                    : 'hover:bg-[#f5f6f6] dark:hover:bg-[#202c33]'
                 }`}
               >
                 {/* Contact Avatar */}
@@ -297,22 +292,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <img
                     src={conv.avatarUrl}
                     alt={conv.name}
-                    className="w-11 h-11 rounded-xl object-cover border border-emerald-400/30 p-0.5 bg-[#030712]"
+                    className="w-12 h-12 rounded-full object-cover bg-gray-200 dark:bg-gray-700"
                   />
                   {conv.isOnline && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-[#050b17] radar-online" />
+                    <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full ring-2 ring-white dark:ring-[#111b21]" />
                   )}
                 </div>
 
                 {/* Info & Last message */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold font-mono text-white truncate group-hover:text-emerald-300 transition-colors">
+                    <span className="text-base font-normal text-gray-900 dark:text-gray-100 truncate">
                       {conv.name}
                     </span>
                     <span
-                      className={`text-[10px] font-mono shrink-0 ${
-                        conv.unreadCount > 0 ? 'text-emerald-400 font-bold' : 'text-gray-500'
+                      className={`text-xs shrink-0 ${
+                        conv.unreadCount > 0 ? 'text-[#00a884] font-medium' : 'text-gray-400'
                       }`}
                     >
                       {conv.lastMessageTime}
@@ -320,28 +315,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
 
                   <div className="flex items-center justify-between mt-1">
-                    <div className="flex items-center space-x-1.5 text-[11px] font-mono text-gray-400 truncate">
-                      {/* Typing indicator or tick icon */}
+                    <div className="flex items-center space-x-1 text-sm text-gray-500 dark:text-gray-400 truncate">
                       {conv.typingStatus ? (
-                        <span className="text-emerald-400 font-medium animate-pulse flex items-center space-x-1">
-                          <Cpu className="w-3 h-3 text-emerald-400 inline" />
-                          <span>typing...</span>
-                        </span>
+                        <span className="text-[#00a884] font-medium">typing...</span>
                       ) : (
                         <>
-                          <span className="text-cyan-400 shrink-0">
-                            <CheckCheck className="w-3.5 h-3.5" />
-                          </span>
-                          <span className="truncate">{conv.lastMessage || 'Encrypted packet buffer'}</span>
+                          <CheckCheck className="w-4 h-4 text-[#53bdeb] shrink-0" />
+                          <span className="truncate">{conv.lastMessage || 'Tap to chat'}</span>
                         </>
                       )}
                     </div>
 
                     <div className="flex items-center space-x-1.5 ml-2 shrink-0">
-                      {conv.isMuted && <VolumeX className="w-3.5 h-3.5 text-gray-500" />}
-                      {conv.isPinned && <Pin className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />}
+                      {conv.isMuted && <VolumeX className="w-4 h-4 text-gray-400" />}
+                      {conv.isPinned && <Pin className="w-3.5 h-3.5 text-gray-400 fill-gray-400" />}
                       {conv.unreadCount > 0 && (
-                        <span className="px-1.5 py-0.5 min-w-4.5 h-4.5 bg-emerald-500 text-gray-950 text-[10px] font-bold font-mono rounded-full flex items-center justify-center shadow-[0_0_8px_rgba(0,245,160,0.5)]">
+                        <span className="px-1.5 py-0.5 min-w-5 h-5 bg-[#25d366] text-white text-xs font-semibold rounded-full flex items-center justify-center">
                           {conv.unreadCount}
                         </span>
                       )}
@@ -352,18 +341,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             );
           })
         )}
-      </div>
-
-      {/* Bottom Node Telemetry Status Bar */}
-      <div className="h-7 px-3 bg-[#040813] border-t border-emerald-500/15 flex items-center justify-between text-[9px] font-mono text-gray-500">
-        <div className="flex items-center space-x-1.5">
-          <Terminal className="w-3 h-3 text-emerald-400/70" />
-          <span>CHANNELS: {conversations.length} SECURE</span>
-        </div>
-        <div className="flex items-center space-x-1 text-emerald-400/80">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-          <span>PING: 18ms // LOSS: 0%</span>
-        </div>
       </div>
     </div>
   );
