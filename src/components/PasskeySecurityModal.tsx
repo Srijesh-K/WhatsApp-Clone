@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, KeyRound, Fingerprint, ShieldAlert, Lock, Trash2, CheckCircle2, Plus, Terminal, Cpu, ShieldCheck } from 'lucide-react';
+import { X, Fingerprint, Lock, ShieldCheck, Trash2, CheckCircle2, Plus, KeyRound } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { security } from '../services/security';
 import type { PasskeyCredential } from '../services/security';
@@ -46,13 +46,13 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
     try {
       const pk = await security.registerPasskey(user.fullName, user.phoneNumber);
       setPasskeys(security.getStoredPasskeys());
-      setSuccessMsg(`FIDO2 Passkey "${pk.name}" ratified & stored in Secure Enclave.`);
+      setSuccessMsg(`Passkey "${pk.name}" created successfully.`);
       try {
         confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
       } catch {}
     } catch (err: unknown) {
       const e = err as Error;
-      setErrorMsg(e.message || 'Failed to initialize biometric hardware handshake.');
+      setErrorMsg(e.message || 'Failed to register passkey.');
     } finally {
       setIsRegistering(false);
     }
@@ -69,11 +69,11 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
     setSuccessMsg(null);
 
     if (newPin.length !== 6 || !/^\d{6}$/.test(newPin)) {
-      setErrorMsg('Input must be exactly 6 decimal digits.');
+      setErrorMsg('PIN must be exactly 6 digits.');
       return;
     }
     if (newPin !== confirmPin) {
-      setErrorMsg('Cryptographic PIN mismatch. Verification failed.');
+      setErrorMsg('PINs do not match.');
       return;
     }
 
@@ -81,13 +81,13 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
     setTwoStepEnabled(true);
     setNewPin('');
     setConfirmPin('');
-    setSuccessMsg('Two-step verification PIN ratified. Enclave hash updated.');
+    setSuccessMsg('Two-step verification has been turned on.');
   };
 
   const handleDisableTwoStep = () => {
     security.disableTwoStepPin();
     setTwoStepEnabled(false);
-    setSuccessMsg('Two-step verification offline.');
+    setSuccessMsg('Two-step verification has been turned off.');
   };
 
   const handleToggleAppLock = (checked: boolean) => {
@@ -101,156 +101,132 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-[#0d1418] border border-cyan-500/30 rounded-2xl shadow-2xl shadow-cyan-950/40 overflow-hidden flex flex-col max-h-[90vh] cyber-grid-dark">
-        {/* Terminal Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-[#0a0f12] border-b border-cyan-500/20 text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-150">
+      <div className="w-full max-w-lg bg-[#111b21] border border-[#222e35] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 bg-[#202c33] border-b border-[#222e35] text-[#e9edef]">
           <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+            <div className="w-9 h-9 rounded-full bg-[#00a884]/20 flex items-center justify-center text-[#00a884]">
               <KeyRound className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center space-x-2">
-                <h2 className="text-sm font-bold tracking-wider text-slate-100 font-mono">
-                  HARDWARE_ENCLAVE // SECURITY
-                </h2>
-                <span className="text-[9px] font-mono px-1.5 py-0.5 rounded-sm bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
-                  FIDO2-ACTIVE
-                </span>
-              </div>
-              <p className="text-[10px] font-mono text-cyan-400/60 mt-0.5">
-                BIO-KEYS • TWO-STEP HASH • AUTONOMOUS LOCK
-              </p>
+              <h2 className="text-base font-semibold text-[#e9edef]">Privacy & Security</h2>
+              <p className="text-xs text-[#8696a0]">Passkeys, Two-step verification & App lock</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg border border-slate-700 hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-colors text-slate-400 hover:text-white"
+            className="p-1.5 rounded-full hover:bg-[#374248] text-[#aebac1] hover:text-[#e9edef] transition-colors"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex border-b border-cyan-500/20 bg-[#090d10] px-4 font-mono text-xs">
+        <div className="flex border-b border-[#222e35] bg-[#202c33]/50 px-6 text-xs">
           <button
             onClick={() => { setActiveTab('passkeys'); setErrorMsg(null); setSuccessMsg(null); }}
-            className={`py-3 px-4 uppercase tracking-wider flex items-center space-x-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-medium flex items-center space-x-2 border-b-2 transition-all ${
               activeTab === 'passkeys'
-                ? 'border-cyan-400 text-cyan-300 bg-cyan-500/5'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-[#8696a0] hover:text-[#e9edef]'
             }`}
           >
-            <Fingerprint className="w-4 h-4 text-cyan-400" />
-            <span>[PASSKEYS]</span>
+            <Fingerprint className="w-4 h-4" />
+            <span>Passkeys</span>
           </button>
           <button
             onClick={() => { setActiveTab('twostep'); setErrorMsg(null); setSuccessMsg(null); }}
-            className={`py-3 px-4 uppercase tracking-wider flex items-center space-x-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-medium flex items-center space-x-2 border-b-2 transition-all ${
               activeTab === 'twostep'
-                ? 'border-emerald-400 text-emerald-300 bg-emerald-500/5'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-[#8696a0] hover:text-[#e9edef]'
             }`}
           >
-            <ShieldAlert className="w-4 h-4 text-emerald-400" />
-            <span>[TWO-STEP PIN]</span>
+            <ShieldCheck className="w-4 h-4" />
+            <span>Two-step verification</span>
           </button>
           <button
             onClick={() => { setActiveTab('applock'); setErrorMsg(null); setSuccessMsg(null); }}
-            className={`py-3 px-4 uppercase tracking-wider flex items-center space-x-2 border-b-2 transition-all ${
+            className={`py-3 px-4 font-medium flex items-center space-x-2 border-b-2 transition-all ${
               activeTab === 'applock'
-                ? 'border-amber-400 text-amber-300 bg-amber-500/5'
-                : 'border-transparent text-slate-500 hover:text-slate-300'
+                ? 'border-[#00a884] text-[#00a884]'
+                : 'border-transparent text-[#8696a0] hover:text-[#e9edef]'
             }`}
           >
-            <Lock className="w-4 h-4 text-amber-400" />
-            <span>[APP LOCK]</span>
+            <Lock className="w-4 h-4" />
+            <span>App lock</span>
           </button>
         </div>
 
         {/* Status Messages */}
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 bg-red-950/40 border border-red-500/40 text-red-400 text-xs font-mono rounded-lg flex items-center space-x-2">
-            <span className="text-red-500 font-bold">[ERR]</span>
+          <div className="mx-6 mt-4 p-3 bg-red-950/40 border border-red-500/30 text-red-400 text-xs rounded-lg flex items-center space-x-2">
             <span>{errorMsg}</span>
           </div>
         )}
         {successMsg && (
-          <div className="mx-6 mt-4 p-3 bg-emerald-950/40 border border-emerald-500/40 text-emerald-300 text-xs font-mono rounded-lg flex items-center space-x-2">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400" />
+          <div className="mx-6 mt-4 p-3 bg-[#00a884]/15 border border-[#00a884]/30 text-[#00a884] text-xs rounded-lg flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-[#00a884]" />
             <span>{successMsg}</span>
           </div>
         )}
 
         {/* Tab Body */}
-        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-slate-300 font-sans">
+        <div className="p-6 overflow-y-auto space-y-5 flex-1 text-[#e9edef]">
           {/* TAB 1: PASSKEYS */}
           {activeTab === 'passkeys' && (
             <div className="space-y-4">
-              <div className="p-4 bg-[#0a1014] rounded-xl border border-cyan-500/20 relative overflow-hidden">
-                <div className="flex items-start space-x-3 relative z-10">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 shrink-0">
-                    <Fingerprint className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-mono text-xs font-bold text-slate-100 uppercase tracking-wider">
-                        FIDO2 / WebAuthn Biometric Enclave
-                      </h4>
-                      <span className="text-[9px] font-mono text-cyan-400 bg-cyan-950/80 px-1.5 py-0.2 rounded border border-cyan-500/30">
-                        SECP256R1
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                      Biometric passkeys leverage on-chip TPM / Secure Enclave hardware (Windows Hello, TouchID, FaceID). Even during SIM swaps or phishing vectors, adversaries cannot compromise your session without physical biometric authorization.
-                    </p>
-                  </div>
+              <div className="p-4 bg-[#202c33] rounded-xl border border-[#2a3942] flex items-start space-x-3.5">
+                <div className="w-10 h-10 rounded-full bg-[#00a884]/15 flex items-center justify-center text-[#00a884] shrink-0 mt-0.5">
+                  <Fingerprint className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-[#e9edef]">
+                    Sign in with passkeys
+                  </h4>
+                  <p className="text-xs text-[#8696a0] leading-relaxed">
+                    Passkeys let you log in securely using your fingerprint, face, or screen lock (Windows Hello, Touch ID, Face ID).
+                  </p>
                 </div>
               </div>
 
               {/* Registered passkeys list */}
               <div className="space-y-2.5">
-                <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 uppercase tracking-wider">
-                  <span className="flex items-center space-x-1.5">
-                    <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-                    <span>BOUND ENCLAVE TOKENS ({passkeys.length})</span>
-                  </span>
-                  <span className="text-[10px] text-emerald-400">HARDWARE-BOUND</span>
+                <div className="text-xs font-semibold text-[#8696a0]">
+                  SAVED PASSKEYS ({passkeys.length})
                 </div>
 
                 {passkeys.length === 0 ? (
-                  <div className="text-center py-6 border border-dashed border-cyan-500/20 rounded-xl text-slate-500 text-xs font-mono bg-cyan-950/10">
-                    NO HARDWARE TOKENS DETECTED. INITIALIZE BIOMETRIC HANDSHAKE BELOW.
+                  <div className="text-center py-6 border border-dashed border-[#2a3942] rounded-xl text-[#8696a0] text-xs">
+                    No passkeys created yet. Add one to sign in with biometric authentication.
                   </div>
                 ) : (
                   <div className="space-y-2">
                     {passkeys.map((pk) => (
                       <div
                         key={pk.id}
-                        className="flex items-center justify-between p-3 bg-[#0a1014] rounded-xl border border-cyan-500/20 hover:border-cyan-500/40 transition-colors"
+                        className="flex items-center justify-between p-3.5 bg-[#202c33] rounded-xl border border-[#2a3942]"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="w-8 h-8 bg-cyan-500/10 border border-cyan-500/30 rounded-lg flex items-center justify-center text-cyan-400">
+                          <div className="w-8 h-8 bg-[#111b21] rounded-full flex items-center justify-center text-[#00a884]">
                             <Fingerprint className="w-4 h-4" />
                           </div>
                           <div>
-                            <div className="text-xs font-mono font-medium text-slate-100 flex items-center space-x-2">
-                              <span>{pk.name}</span>
-                              <span className="text-[9px] px-1 py-0.2 bg-slate-800 text-cyan-400 rounded font-mono">
-                                {pk.type}
-                              </span>
+                            <div className="text-sm font-medium text-[#e9edef]">
+                              {pk.name}
                             </div>
-                            <div className="text-[10px] font-mono text-slate-500">
-                              BOUND: {new Date(pk.createdAt).toLocaleDateString()} • ID: {pk.id.slice(0, 8)}...
+                            <div className="text-xs text-[#8696a0]">
+                              Created {new Date(pk.createdAt).toLocaleDateString()}
                             </div>
                           </div>
                         </div>
                         <button
                           onClick={() => handleRemovePasskey(pk.id)}
-                          className="p-1.5 text-slate-500 hover:text-red-400 rounded-lg hover:bg-red-500/10 border border-transparent hover:border-red-500/30 transition-colors"
-                          title="Revoke passkey token"
+                          className="p-1.5 text-[#8696a0] hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
+                          title="Remove passkey"
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                     ))}
@@ -262,10 +238,10 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
               <button
                 onClick={handleRegisterPasskey}
                 disabled={isRegistering}
-                className="w-full py-3 px-4 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-slate-900 font-mono font-bold text-xs uppercase tracking-wider rounded-xl flex items-center justify-center space-x-2 shadow-lg shadow-cyan-900/30 transition-all disabled:opacity-50"
+                className="w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#008f6f] text-white font-medium text-xs rounded-lg flex items-center justify-center space-x-2 transition-all disabled:opacity-50 cursor-pointer shadow-sm"
               >
                 <Plus className="w-4 h-4" />
-                <span>{isRegistering ? 'INITIALIZING HARDWARE PROMPT...' : 'REGISTER ENCLAVE PASSKEY'}</span>
+                <span>{isRegistering ? 'Registering with device...' : 'Create passkey'}</span>
               </button>
             </div>
           )}
@@ -273,48 +249,41 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
           {/* TAB 2: TWO-STEP VERIFICATION PIN */}
           {activeTab === 'twostep' && (
             <div className="space-y-4">
-              <div className="p-4 bg-[#0a1014] rounded-xl border border-emerald-500/20">
-                <div className="flex items-start space-x-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-                    <ShieldAlert className="w-6 h-6" />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <h4 className="font-mono text-xs font-bold text-slate-100 uppercase tracking-wider">
-                        Two-Step Cryptographic PIN
-                      </h4>
-                      <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/80 px-1.5 py-0.2 rounded border border-emerald-500/30">
-                        PBKDF2-HASH
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                      Requires a 6-digit cryptographic PIN whenever your node is provisioned or re-registered across devices.
-                    </p>
-                  </div>
+              <div className="p-4 bg-[#202c33] rounded-xl border border-[#2a3942] flex items-start space-x-3.5">
+                <div className="w-10 h-10 rounded-full bg-[#00a884]/15 flex items-center justify-center text-[#00a884] shrink-0 mt-0.5">
+                  <ShieldCheck className="w-5 h-5" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-[#e9edef]">
+                    Two-step verification
+                  </h4>
+                  <p className="text-xs text-[#8696a0] leading-relaxed">
+                    For extra security, require a 6-digit PIN when registering your phone number with WhatsApp again.
+                  </p>
                 </div>
               </div>
 
               {twoStepEnabled ? (
-                <div className="p-4 bg-emerald-950/20 rounded-xl border border-emerald-500/30 space-y-3">
-                  <div className="flex items-center space-x-2 text-emerald-300 font-mono text-xs font-bold">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <span>STATUS: TWO-STEP PIN RATIFIED & ARMED</span>
+                <div className="p-4 bg-[#202c33] rounded-xl border border-[#2a3942] space-y-3">
+                  <div className="flex items-center space-x-2 text-[#00a884] text-xs font-semibold">
+                    <CheckCircle2 className="w-4 h-4 text-[#00a884]" />
+                    <span>Two-step verification is enabled</span>
                   </div>
-                  <p className="text-xs text-slate-400 font-mono">
-                    Account provision requires secondary hardware authorization.
+                  <p className="text-xs text-[#8696a0]">
+                    You will be asked to enter your PIN periodically and whenever you register a new device.
                   </p>
                   <button
                     onClick={handleDisableTwoStep}
-                    className="py-2 px-3 bg-red-950/40 border border-red-500/30 hover:border-red-500/60 text-red-400 rounded-lg text-xs font-mono uppercase tracking-wider transition-colors"
+                    className="py-2 px-3 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg text-xs font-medium transition-colors cursor-pointer"
                   >
-                    DISABLE TWO-STEP PIN
+                    Turn off PIN
                   </button>
                 </div>
               ) : (
                 <form onSubmit={handleSaveTwoStepPin} className="space-y-3">
                   <div>
-                    <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-                      INITIALIZE 6-DIGIT ENCLAVE PIN
+                    <label className="block text-xs font-medium text-[#8696a0] mb-1.5">
+                      Create 6-digit PIN
                     </label>
                     <input
                       type="password"
@@ -322,12 +291,12 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
                       value={newPin}
                       onChange={(e) => setNewPin(e.target.value.replace(/\D/g, ''))}
                       placeholder="••••••"
-                      className="w-full text-center tracking-[0.5em] text-xl font-mono py-2.5 px-3 bg-[#0a0f12] border border-cyan-500/30 text-cyan-300 rounded-lg focus:outline-hidden focus:border-cyan-400"
+                      className="w-full text-center tracking-[0.5em] text-lg py-2.5 px-3 bg-[#202c33] border border-[#2a3942] text-[#e9edef] rounded-lg focus:outline-hidden focus:border-[#00a884]"
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-mono text-slate-400 uppercase tracking-wider mb-1">
-                      CONFIRM PIN HASH
+                    <label className="block text-xs font-medium text-[#8696a0] mb-1.5">
+                      Confirm PIN
                     </label>
                     <input
                       type="password"
@@ -335,14 +304,14 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
                       value={confirmPin}
                       onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, ''))}
                       placeholder="••••••"
-                      className="w-full text-center tracking-[0.5em] text-xl font-mono py-2.5 px-3 bg-[#0a0f12] border border-cyan-500/30 text-cyan-300 rounded-lg focus:outline-hidden focus:border-cyan-400"
+                      className="w-full text-center tracking-[0.5em] text-lg py-2.5 px-3 bg-[#202c33] border border-[#2a3942] text-[#e9edef] rounded-lg focus:outline-hidden focus:border-[#00a884]"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-slate-900 font-mono font-bold text-xs uppercase tracking-wider rounded-xl shadow-lg transition-all"
+                    className="w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#008f6f] text-white font-medium text-xs rounded-lg transition-all cursor-pointer shadow-sm"
                   >
-                    RATIFY TWO-STEP PIN
+                    Turn on
                   </button>
                 </form>
               )}
@@ -352,14 +321,13 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
           {/* TAB 3: APP LOCK */}
           {activeTab === 'applock' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-[#0a1014] rounded-xl border border-amber-500/20">
+              <div className="flex items-center justify-between p-4 bg-[#202c33] rounded-xl border border-[#2a3942]">
                 <div className="space-y-1 pr-4">
-                  <div className="text-xs font-mono font-bold text-slate-100 flex items-center space-x-2 uppercase">
-                    <ShieldCheck className="w-4 h-4 text-amber-400" />
-                    <span>IDLE LOCKOUT ENFORCEMENT</span>
+                  <div className="text-sm font-semibold text-[#e9edef]">
+                    Unlock with biometric or screen lock
                   </div>
-                  <p className="text-xs text-slate-400">
-                    Requires biometric verification or PIN to resume terminal session after inactivity.
+                  <p className="text-xs text-[#8696a0]">
+                    When enabled, you'll need to use your fingerprint or face to open WhatsApp Web.
                   </p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -369,34 +337,34 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
                     onChange={(e) => handleToggleAppLock(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-slate-800 peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  <div className="w-11 h-6 bg-[#374248] peer-focus:outline-hidden rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00a884]"></div>
                 </label>
               </div>
 
               {appLockEnabled && (
-                <div className="space-y-2 p-4 bg-[#0a1014] rounded-xl border border-amber-500/20 font-mono text-xs">
-                  <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider mb-2">
-                    LOCKOUT LATENCY TIMEOUT
+                <div className="space-y-2 p-4 bg-[#202c33] rounded-xl border border-[#2a3942] text-xs">
+                  <div className="text-xs font-semibold text-[#8696a0] mb-2">
+                    AUTOMATICALLY LOCK
                   </div>
                   <div className="space-y-1.5">
                     {[
-                      { id: 'immediately', label: 'IMMEDIATELY (0ms)' },
-                      { id: '1min', label: '1 MINUTE (60,000ms)' },
-                      { id: '15min', label: '15 MINUTES' },
-                      { id: '1hour', label: '1 HOUR' },
+                      { id: 'immediately', label: 'Immediately' },
+                      { id: '1min', label: 'After 1 minute' },
+                      { id: '15min', label: 'After 15 minutes' },
+                      { id: '1hour', label: 'After 1 hour' },
                     ].map((opt) => (
                       <label
                         key={opt.id}
-                        className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-800/50 cursor-pointer border border-transparent hover:border-slate-700 transition-colors"
+                        className="flex items-center justify-between p-2 rounded-lg hover:bg-[#111b21] cursor-pointer transition-colors"
                       >
-                        <span className="text-xs text-slate-300">{opt.label}</span>
+                        <span className="text-xs text-[#e9edef]">{opt.label}</span>
                         <input
                           type="radio"
                           name="lock_timeout"
                           value={opt.id}
                           checked={lockTimeout === opt.id}
                           onChange={() => handleChangeTimeout(opt.id)}
-                          className="accent-amber-400 w-3.5 h-3.5"
+                          className="accent-[#00a884] w-4 h-4 cursor-pointer"
                         />
                       </label>
                     ))}
@@ -409,30 +377,25 @@ export const PasskeySecurityModal: React.FC<PasskeySecurityModalProps> = ({
                   onLockAppNow();
                   onClose();
                 }}
-                className="w-full py-3 px-4 bg-[#111a20] hover:bg-[#16232b] text-amber-300 border border-amber-500/30 rounded-xl font-mono text-xs uppercase tracking-wider flex items-center justify-center space-x-2 transition-colors"
+                className="w-full py-2.5 px-4 bg-[#202c33] hover:bg-[#2a3942] text-[#e9edef] border border-[#2a3942] rounded-lg text-xs font-medium flex items-center justify-center space-x-2 transition-colors cursor-pointer"
               >
-                <Lock className="w-4 h-4 text-amber-400" />
-                <span>TERMINATE ACTIVE SESSION & LOCK ENCLAVE</span>
+                <Lock className="w-4 h-4 text-[#8696a0]" />
+                <span>Lock WhatsApp now</span>
               </button>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 bg-[#0a0f12] border-t border-cyan-500/20 flex items-center justify-between font-mono text-[10px] text-slate-500">
-          <span className="flex items-center space-x-1">
-            <Terminal className="w-3 h-3 text-cyan-400" />
-            <span>FIDO2-LEVEL-3 // ENCLAVE-SECURE</span>
-          </span>
+        <div className="px-6 py-3 bg-[#202c33] border-t border-[#222e35] flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 rounded-lg uppercase tracking-wider transition-colors"
+            className="px-5 py-2 bg-[#00a884] hover:bg-[#008f6f] text-white text-xs font-medium rounded-lg transition-colors cursor-pointer"
           >
-            DISMISS [ESC]
+            Done
           </button>
         </div>
       </div>
     </div>
   );
 };
-
