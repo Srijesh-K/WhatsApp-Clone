@@ -398,7 +398,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       <div
         className={
           isStandalonePage
-            ? 'w-screen h-screen min-h-screen flex items-center justify-center bg-[#0b141a] p-4 select-none animate-in fade-in duration-200'
+            ? 'w-screen h-screen min-h-screen flex items-center justify-center bg-[#0b141a] p-4 animate-in fade-in duration-200'
             : 'fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200'
         }
       >
@@ -496,8 +496,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     <div
       className={
         isStandalonePage
-          ? 'w-screen h-screen min-h-screen flex flex-col bg-[#0b141a] text-gray-200 overflow-hidden select-none animate-in fade-in duration-200'
-          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 select-none animate-in fade-in duration-200'
+          ? 'w-screen h-screen min-h-screen flex flex-col bg-[#0b141a] text-gray-200 overflow-hidden animate-in fade-in duration-200'
+          : 'fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md p-2 sm:p-4 animate-in fade-in duration-200'
       }
     >
       <div

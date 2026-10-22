@@ -66,7 +66,7 @@ export const StatusStoriesModal: React.FC<StatusStoriesModalProps> = ({
   if (!current) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 select-none p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 animate-in fade-in duration-200">
       <div className="w-full max-w-md h-[90vh] bg-black rounded-3xl overflow-hidden relative flex flex-col justify-between shadow-2xl border border-gray-800">
         {/* Story Progress Bars */}
         <div className="absolute top-3 inset-x-3 z-20 flex space-x-1.5">
