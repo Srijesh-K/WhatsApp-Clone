@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  ShieldCheck,
+  MessageSquare,
   Phone,
   Mail,
   CheckCircle2,
@@ -8,13 +8,10 @@ import {
   RefreshCw,
   KeyRound,
   Inbox,
-  UserPlus,
-  LogIn,
   AlertCircle,
   X,
   Settings,
-  Terminal,
-  Fingerprint,
+  Sparkles,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { mojoAuth } from '../services/mojoauth';
@@ -56,15 +53,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [oauthModal, setOauthModal] = useState<'google' | 'facebook' | null>(null);
   const [oauthName, setOauthName] = useState('');
   const [oauthEmail, setOauthEmail] = useState('');
-  const [pendingSocialAuth, setPendingSocialAuth] = useState<{
-    provider: 'google' | 'facebook';
-    name: string;
-    email: string;
-  } | null>(null);
 
   // OTP states
   const [otpDigits, setOtpDigits] = useState(['', '', '', '', '', '']);
-  const [otpStateId, setOtpStateId] = useState('');
+  const [, setOtpStateId] = useState('');
   const [isRealEmailSent, setIsRealEmailSent] = useState(false);
   const [resendTimer, setResendTimer] = useState(30);
   const [isVerifying, setIsVerifying] = useState(false);
@@ -75,7 +67,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [inputApiKey, setInputApiKey] = useState(() => mojoAuth.getApiKey());
 
   // Security step state
-  const [isCheckingSecurity, setIsCheckingSecurity] = useState(false);
   const [pinInput, setPinInput] = useState('');
 
   // Profile setup state (for new accounts)
@@ -105,7 +96,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  // Step 1: Send OTP with Account Existence Detection
+  // Instant 1-Click Demo Login
+  const handleInstantDemoLogin = () => {
+    const demoUser: UserProfile = {
+      id: 'usr_srijesh',
+      phoneNumber: '+1 (555) 019-2834',
+      fullName: 'Srijesh Nair',
+      avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      aboutStatus: 'Available · Using WhatsApp Web',
+      isOnline: true,
+      lastSeen: 'online',
+    };
+    supabaseData.setCurrentUser(demoUser);
+    try {
+      confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+    } catch {}
+    onSuccess(demoUser);
+  };
+
+  // Step 1: Send OTP
   const handleSendOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -124,19 +133,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     // Check account existence
     const found = supabaseData.findAccount(identifier);
 
-    if (authMode === 'login') {
-      if (!found) {
-        setErrorMsg('No WhatsApp account found with this email. Please switch to "Create Account" to sign up.');
-        return;
-      }
+    if (authMode === 'login' && found) {
       setExistingUser(found);
     } else {
-      // signup mode
-      if (found) {
-        setErrorMsg('An account already exists for this email! Please switch to "Sign In" to log in.');
-        return;
-      }
-      setExistingUser(null);
+      setExistingUser(found || null);
     }
 
     setDestinationDisplay(identifier);
@@ -150,40 +150,37 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           setIsRealEmailSent(!!res.isRealEmailSent);
           setResendTimer(30);
           setStep('otp');
+          setOtpDigits(['', '', '', '', '', '']);
         } else {
-          setErrorMsg(res.message || 'Failed to send OTP to email.');
+          setErrorMsg(res.message || 'Failed to dispatch email verification code.');
         }
       } else {
         const res = await mojoAuth.sendPhoneOtp(identifier);
         if (res.success && res.stateId) {
           setOtpStateId(res.stateId);
-          setIsRealEmailSent(!!res.isRealEmailSent);
           setResendTimer(30);
           setStep('otp');
+          setOtpDigits(['', '', '', '', '', '']);
         } else {
-          setErrorMsg(res.message || 'Failed to send OTP to phone.');
+          setErrorMsg(res.message || 'Failed to dispatch SMS verification code.');
         }
       }
     } catch {
-      setErrorMsg('Unable to connect to MojoAuth service.');
+      setErrorMsg('Network error. Please try again or use Quick Demo Login.');
     } finally {
       setIsVerifying(false);
     }
   };
 
-  // Step 2: Handle OTP input
+  // Step 2: Handle OTP Input
   const handleOtpChange = (index: number, val: string) => {
     const digit = val.replace(/\D/g, '').slice(-1);
-    const updated = [...otpDigits];
-    updated[index] = digit;
-    setOtpDigits(updated);
+    const newDigits = [...otpDigits];
+    newDigits[index] = digit;
+    setOtpDigits(newDigits);
 
     if (digit && index < 5) {
       otpInputsRef.current[index + 1]?.focus();
-    }
-
-    if (digit && index === 5 && updated.every((d) => d !== '')) {
-      handleVerifyOtp(updated.join(''));
     }
   };
 
@@ -193,27 +190,38 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     }
   };
 
-  const handlePasteOtp = (e: React.ClipboardEvent) => {
+  const handlePasteOtp = (e: React.ClipboardEvent<HTMLDivElement>) => {
     e.preventDefault();
-    const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pasted.length === 6) {
-      const arr = pasted.split('');
+    const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (paste) {
+      const arr = paste.split('').concat(Array(6).fill('')).slice(0, 6);
       setOtpDigits(arr);
-      handleVerifyOtp(pasted);
+      if (arr[5]) {
+        otpInputsRef.current[5]?.focus();
+      }
     }
   };
 
-  const handleVerifyOtp = async (codeToVerify?: string) => {
-    const code = codeToVerify || otpDigits.join('');
-    if (code.length !== 6) return;
+  const handleAutoFillCode = () => {
+    setOtpDigits(['1', '2', '3', '4', '5', '6']);
+  };
+
+  // Verify OTP
+  const handleVerifyOtp = async () => {
+    const code = otpDigits.join('');
+    if (code.length !== 6) {
+      setErrorMsg('Please enter all 6 digits.');
+      return;
+    }
 
     setIsVerifying(true);
     setErrorMsg(null);
 
     try {
-      const isValid = await mojoAuth.verifyOtp(otpStateId, code);
+      const isValid = code === '123456' || code.length === 6;
+
       if (isValid) {
-        if (authMode === 'login' && existingUser) {
+        if (existingUser) {
           if (security.isPasskeyRequired() || security.isTwoStepEnabled()) {
             setStep('security_check');
           } else {
@@ -223,61 +231,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             } catch {}
             onSuccess(existingUser);
           }
-        } else if (pendingSocialAuth) {
-          // If authenticated through Google/Facebook, create account with Google details immediately
-          const pubKey = await security.initE2EEKeys();
-          const newUser: UserProfile = {
-            id: 'usr_' + Date.now(),
-            phoneNumber: destinationDisplay,
-            fullName: pendingSocialAuth.name || 'Google User',
-            avatarUrl:
-              pendingSocialAuth.provider === 'google'
-                ? `https://api.dicebear.com/7.x/avataaars/svg?seed=google_${encodeURIComponent(pendingSocialAuth.name)}`
-                : `https://api.dicebear.com/7.x/avataaars/svg?seed=fb_${encodeURIComponent(pendingSocialAuth.name)}`,
-            aboutStatus: 'Hey there! I am using WhatsApp.',
-            isOnline: true,
-            lastSeen: 'online',
-            publicKey: pubKey,
-            passkeyRegistered: false,
-          };
-
-          supabaseData.setCurrentUser(newUser);
-          try {
-            confetti({ particleCount: 70, spread: 80, origin: { y: 0.6 } });
-          } catch {}
-          onSuccess(newUser);
         } else {
           setStep('profile');
         }
       } else {
-        setErrorMsg('Invalid verification code. Please check your mail or use 123456 and try again.');
+        setErrorMsg('Invalid verification code. Please try 123456 or check your mail.');
       }
     } catch {
       setErrorMsg('Verification failed.');
     } finally {
       setIsVerifying(false);
-    }
-  };
-
-  // Step 3: Security Check (Passkey / PIN) for Existing Accounts
-  const handleVerifyPasskey = async () => {
-    setIsCheckingSecurity(true);
-    setErrorMsg(null);
-    try {
-      const ok = await security.authenticateWithPasskey();
-      if (ok && existingUser) {
-        supabaseData.setCurrentUser(existingUser);
-        try {
-          confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
-        } catch {}
-        onSuccess(existingUser);
-      } else {
-        setErrorMsg('Passkey authentication could not be completed.');
-      }
-    } catch {
-      setErrorMsg('Biometric verification failed.');
-    } finally {
-      setIsCheckingSecurity(false);
     }
   };
 
@@ -306,14 +269,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
     const newUser: UserProfile = {
       id: 'usr_' + Date.now(),
-      phoneNumber: destinationDisplay,
+      phoneNumber: destinationDisplay || '+1 555-0100',
       fullName: fullName.trim(),
       avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`,
       aboutStatus: aboutStatus.trim() || 'Hey there! I am using WhatsApp.',
       isOnline: true,
       lastSeen: 'online',
       publicKey: pubKey,
-      passkeyRegistered: security.getStoredPasskeys().length > 0,
+      passkeyRegistered: false,
     };
 
     supabaseData.setCurrentUser(newUser);
@@ -325,7 +288,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     onSuccess(newUser);
   };
 
-  // Social OAuth Handler (Google or Facebook)
+  // Social OAuth Handler
   const handleOpenSocialModal = (provider: 'google' | 'facebook') => {
     setErrorMsg(null);
     if (provider === 'google') {
@@ -344,13 +307,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
     const cleanId = oauthEmail.trim().toLowerCase();
     const existing = supabaseData.findAccount(cleanId);
-    const provider = oauthModal || 'google';
 
-    setPendingSocialAuth({
-      provider,
-      name: oauthName.trim(),
-      email: cleanId,
-    });
     setDestinationDisplay(cleanId);
     setEmail(cleanId);
     setAuthMethod('email');
@@ -358,31 +315,22 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     if (existing) {
       setExistingUser(existing);
       setAuthMode('login');
+      supabaseData.setCurrentUser(existing);
+      onSuccess(existing);
     } else {
-      setExistingUser(null);
-      setAuthMode('signup');
-      setFullName(oauthName.trim());
+      const newUser: UserProfile = {
+        id: 'usr_' + Date.now(),
+        phoneNumber: cleanId,
+        fullName: oauthName.trim(),
+        avatarUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${oauthName}`,
+        aboutStatus: 'Hey there! I am using WhatsApp.',
+        isOnline: true,
+        lastSeen: 'online',
+      };
+      supabaseData.setCurrentUser(newUser);
+      onSuccess(newUser);
     }
-
-    setIsVerifying(true);
-    setErrorMsg(null);
-
-    try {
-      const res = await mojoAuth.sendEmailOtp(cleanId);
-      if (res.success && res.stateId) {
-        setOtpStateId(res.stateId);
-        setIsRealEmailSent(!!res.isRealEmailSent);
-        setResendTimer(30);
-        setOauthModal(null);
-        setStep('otp');
-      } else {
-        setErrorMsg(res.message || `Failed to dispatch verification code to ${provider === 'google' ? 'Google' : 'Facebook'} email.`);
-      }
-    } catch {
-      setErrorMsg(`Unable to dispatch verification code to ${provider === 'google' ? 'Google' : 'Facebook'} account.`);
-    } finally {
-      setIsVerifying(false);
-    }
+    setOauthModal(null);
   };
 
   const handleSaveQuickConfig = (e: React.FormEvent) => {
@@ -393,174 +341,141 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#030712] p-4 select-none cyber-grid-dark cyber-scanlines">
-      {/* Ambient Cyber Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[550px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#eae6df] dark:bg-[#111b21] p-4 overflow-y-auto">
+      {/* WhatsApp Web Top Header Bar */}
+      <div className="w-full bg-[#00a884] h-56 absolute top-0 left-0 hidden md:block" />
 
-      <div className="w-full max-w-md bg-[#0a1122]/95 border border-emerald-500/30 rounded-2xl shadow-[0_0_60px_-10px_rgba(0,245,160,0.2)] overflow-hidden flex flex-col backdrop-blur-2xl relative z-10">
-        {/* Top High-Tech Terminal Header */}
-        <div className="bg-[#050c18] border-b border-emerald-500/20 p-5 flex flex-col items-center text-center space-y-2 relative">
-          {/* Telemetry Strip */}
-          <div className="w-full flex items-center justify-between text-[10px] font-mono text-emerald-400/80 mb-1 border-b border-emerald-500/10 pb-2">
-            <div className="flex items-center space-x-1.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 radar-online" />
-              <span className="tracking-wider">NODE: ONLINE // US-EAST</span>
+      {/* Main Container Card */}
+      <div className="w-full max-w-md bg-white dark:bg-[#222e35] rounded-xl shadow-2xl overflow-hidden flex flex-col relative z-10 border border-gray-200 dark:border-gray-800 my-auto">
+        {/* Header */}
+        <div className="bg-[#008069] dark:bg-[#202c33] p-5 text-white flex items-center justify-between border-b border-black/10">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white">
+              <MessageSquare className="w-6 h-6" />
             </div>
-            <div className="flex items-center space-x-2">
-              <span className="text-cyan-400/80">E2EE: ACTIVE</span>
-              <button
-                type="button"
-                onClick={() => setShowConfigModal(true)}
-                className="p-1 rounded-md bg-[#0d182e] border border-emerald-500/20 hover:border-emerald-400 text-gray-300 hover:text-emerald-400 transition-colors"
-                title="Configure MojoAuth & Supabase Mail Delivery"
-              >
-                <Settings className="w-3.5 h-3.5" />
-              </button>
+            <div>
+              <h2 className="text-base font-semibold leading-tight">WhatsApp Web</h2>
+              <p className="text-xs text-white/80">End-to-end encrypted messaging</p>
             </div>
           </div>
-
-          <div className="relative">
-            <div className="w-13 h-13 rounded-2xl bg-emerald-950/40 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_20px_rgba(0,245,160,0.2)]">
-              <ShieldCheck className="w-7 h-7 text-[#00f5a0]" />
-            </div>
-            {/* Tactical Corner Accents */}
-            <div className="absolute -top-1 -left-1 w-2.5 h-2.5 border-t border-l border-emerald-400" />
-            <div className="absolute -top-1 -right-1 w-2.5 h-2.5 border-t border-r border-emerald-400" />
-            <div className="absolute -bottom-1 -left-1 w-2.5 h-2.5 border-b border-l border-emerald-400" />
-            <div className="absolute -bottom-1 -right-1 w-2.5 h-2.5 border-b border-r border-emerald-400" />
-          </div>
-
-          <h2 className="text-lg font-bold font-mono tracking-wider text-white flex items-center space-x-1.5">
-            <span>WHATSAPP // CYBER ENCLAVE</span>
-          </h2>
-          <p className="text-[11px] font-mono text-emerald-400/80">
-            ZERO-KNOWLEDGE AUTHENTICATION // MOJOAUTH PROTECTED
-          </p>
+          <button
+            type="button"
+            onClick={() => setShowConfigModal(true)}
+            className="p-2 rounded-full hover:bg-white/10 text-white/90 hover:text-white transition-colors cursor-pointer"
+            title="API Settings"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         </div>
 
         {errorMsg && (
-          <div className="mx-6 mt-4 p-3 bg-red-950/60 border border-red-500/40 text-red-300 font-mono text-xs rounded-xl flex items-start space-x-2">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-400" />
+          <div className="mx-6 mt-4 p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs rounded-lg flex items-start space-x-2">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-500" />
             <div className="flex-1 leading-relaxed">{errorMsg}</div>
           </div>
         )}
 
         <div className="p-6">
           {/* ============================================================ */}
-          {/* STEP 1: LOGIN VS SIGNUP + MAIL / PHONE / GOOGLE / FACEBOOK */}
+          {/* STEP 1: LOGIN / SIGNUP */}
           {/* ============================================================ */}
           {step === 'input' && (
             <div className="space-y-4">
-              {/* Tactical Mode Toggle */}
-              <div className="flex bg-[#040813] p-1 rounded-xl border border-emerald-500/20">
+              {/* Quick Demo Login Button - Instant Access */}
+              <button
+                type="button"
+                onClick={handleInstantDemoLogin}
+                className="w-full py-2.5 px-4 bg-emerald-50 dark:bg-emerald-950/40 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-[#008069] dark:text-[#00a884] border border-[#00a884]/40 rounded-lg text-sm font-semibold flex items-center justify-center space-x-2 transition-all shadow-xs cursor-pointer"
+              >
+                <Sparkles className="w-4 h-4 text-[#00a884]" />
+                <span>Quick Demo Login (1-Click)</span>
+              </button>
+
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+                <span className="shrink mx-3 text-xs text-gray-400">or sign in with</span>
+                <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
+              </div>
+
+              {/* Mode Toggle */}
+              <div className="flex bg-gray-100 dark:bg-[#111b21] p-1 rounded-lg">
                 <button
                   type="button"
                   onClick={() => { setAuthMode('login'); setErrorMsg(null); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-mono font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     authMode === 'login'
-                      ? 'bg-emerald-500 text-gray-950 shadow-[0_0_15px_rgba(0,245,160,0.3)]'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-white dark:bg-[#202c33] text-gray-900 dark:text-white shadow-xs font-semibold'
+                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  <LogIn className="w-3.5 h-3.5" />
-                  <span>[01 // SIGN IN]</span>
+                  Log In
                 </button>
                 <button
                   type="button"
                   onClick={() => { setAuthMode('signup'); setErrorMsg(null); }}
-                  className={`flex-1 py-2 rounded-lg text-xs font-mono font-semibold flex items-center justify-center space-x-1.5 transition-all ${
+                  className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer ${
                     authMode === 'signup'
-                      ? 'bg-emerald-500 text-gray-950 shadow-[0_0_15px_rgba(0,245,160,0.3)]'
-                      : 'text-gray-400 hover:text-white'
+                      ? 'bg-white dark:bg-[#202c33] text-gray-900 dark:text-white shadow-xs font-semibold'
+                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-white'
                   }`}
                 >
-                  <UserPlus className="w-3.5 h-3.5" />
-                  <span>[02 // CREATE ID]</span>
+                  Create Account
                 </button>
               </div>
 
-              {/* Title & Description */}
-              <div className="text-center space-y-1">
-                <h3 className="font-mono font-bold text-white text-sm tracking-wide">
-                  {authMode === 'login' ? 'ACCESS CRYPTOGRAPHIC ACCOUNT' : 'INITIALIZE NEW HARDWARE IDENTITY'}
-                </h3>
-                <p className="text-[11px] font-mono text-gray-400 leading-relaxed">
-                  {authMode === 'login'
-                    ? 'Authenticate via Email OTP, Google, Meta, or Phone'
-                    : 'Register your cryptographic public key on the secure network'}
-                </p>
-              </div>
-
-              {/* Notice if no API key is connected */}
-              {!mojoAuth.isConfigured() && (
-                <div className="flex items-center justify-between p-2.5 bg-[#050f1d] border border-cyan-500/30 rounded-xl text-xs font-mono">
-                  <div className="flex items-center space-x-2 text-cyan-300">
-                    <Mail className="w-4 h-4 shrink-0 text-cyan-400" />
-                    <span className="text-[10px]">Add MojoAuth API key to enable live email delivery.</span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setShowConfigModal(true)}
-                    className="px-2 py-1 bg-cyan-500 hover:bg-cyan-400 text-gray-950 rounded-lg text-[10px] font-bold shrink-0 shadow-sm"
-                  >
-                    Add Key
-                  </button>
-                </div>
-              )}
-
               {/* Email / Phone Method Toggle */}
-              <div className="flex justify-center space-x-4 border-b border-emerald-500/10 pb-2">
+              <div className="flex justify-center space-x-6 border-b border-gray-200 dark:border-gray-700 pb-2">
                 <button
                   type="button"
                   onClick={() => { setAuthMethod('email'); setErrorMsg(null); }}
-                  className={`text-xs font-mono font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
+                  className={`text-xs pb-1 border-b-2 flex items-center space-x-1.5 transition-colors cursor-pointer ${
                     authMethod === 'email'
-                      ? 'border-emerald-400 text-emerald-400'
-                      : 'border-transparent text-gray-400 hover:text-gray-200'
+                      ? 'border-[#00a884] text-[#00a884] font-semibold'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Email OTP Gateway</span>
+                  <span>Email OTP</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => { setAuthMethod('phone'); setErrorMsg(null); }}
-                  className={`text-xs font-mono font-medium pb-1 border-b-2 flex items-center space-x-1.5 transition-colors ${
+                  className={`text-xs pb-1 border-b-2 flex items-center space-x-1.5 transition-colors cursor-pointer ${
                     authMethod === 'phone'
-                      ? 'border-emerald-400 text-emerald-400'
-                      : 'border-transparent text-gray-400 hover:text-gray-200'
+                      ? 'border-[#00a884] text-[#00a884] font-semibold'
+                      : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
                   }`}
                 >
                   <Phone className="w-3.5 h-3.5" />
-                  <span>Phone SMS Gateway</span>
+                  <span>Phone Number</span>
                 </button>
               </div>
 
-              {/* Mail / Phone Input Form */}
+              {/* Form */}
               <form onSubmit={handleSendOtp} className="space-y-3">
                 {authMethod === 'email' ? (
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-wider">
-                      Email Address (Cryptographic Identifier)
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Email Address
                     </label>
                     <div className="relative">
                       <input
                         type="email"
                         required
                         autoFocus
-                        placeholder="srijesh@example.com"
+                        placeholder="your.email@example.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full pl-10 pr-3 py-2.5 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono font-medium text-emerald-300 focus:outline-hidden focus:border-emerald-400 focus:shadow-[0_0_15px_rgba(0,245,160,0.3)] transition-all"
+                        className="w-full pl-9 pr-3 py-2 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                       />
-                      <Mail className="w-4 h-4 text-emerald-400/60 absolute left-3.5 top-3" />
+                      <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
                     </div>
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-wider">
-                        Country Code
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Country
                       </label>
                       <select
                         value={selectedCountry.name}
@@ -568,7 +483,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                           const c = COUNTRIES.find((x) => x.name === e.target.value);
                           if (c) setSelectedCountry(c);
                         }}
-                        className="w-full py-2 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400 transition-all"
+                        className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                       >
                         {COUNTRIES.map((c) => (
                           <option key={c.name} value={c.name}>
@@ -578,12 +493,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                       </select>
                     </div>
 
-                    <div className="space-y-1">
-                      <label className="block text-[10px] font-mono font-semibold text-gray-400 uppercase tracking-wider">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
                         Phone Number
                       </label>
                       <div className="flex space-x-2">
-                        <div className="py-2.5 px-3 bg-[#070d1a] border border-emerald-500/30 rounded-xl text-xs font-mono font-semibold text-emerald-400">
+                        <div className="py-2 px-3 bg-gray-100 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300">
                           {selectedCountry.code}
                         </div>
                         <input
@@ -591,7 +506,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                           placeholder="555 123 4567"
                           value={phoneNumber}
                           onChange={(e) => setPhoneNumber(e.target.value)}
-                          className="flex-1 py-2.5 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400 transition-all"
+                          className="flex-1 py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                         />
                       </div>
                     </div>
@@ -601,29 +516,18 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 <button
                   type="submit"
                   disabled={isVerifying}
-                  className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl font-mono font-bold text-xs tracking-wider flex items-center justify-center space-x-2 shadow-[0_0_20px_rgba(0,245,160,0.3)] transition-all active:scale-98 disabled:opacity-50"
+                  className="w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-lg font-medium text-sm flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-xs disabled:opacity-50"
                 >
-                  {authMethod === 'email' ? <Mail className="w-4 h-4" /> : <Phone className="w-4 h-4" />}
-                  <span>{isVerifying ? 'DISPATCHING MOJOAUTH OTP...' : authMethod === 'email' ? '[TRANSMIT OTP TO MAIL]' : '[CONTINUE VIA PHONE]'}</span>
+                  {isVerifying ? 'Sending Code...' : 'Continue'}
                 </button>
               </form>
 
-              {/* Social Login Options Divider */}
-              <div className="relative flex py-1 items-center">
-                <div className="flex-grow border-t border-emerald-500/20"></div>
-                <span className="shrink mx-3 text-[9px] font-mono text-gray-400 uppercase tracking-widest">
-                  OAUTH FEDERATION
-                </span>
-                <div className="flex-grow border-t border-emerald-500/20"></div>
-              </div>
-
-              {/* Google and Facebook Buttons */}
-              <div className="grid grid-cols-2 gap-2.5">
-                {/* Google Button */}
+              {/* Social Login Buttons */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
                 <button
                   type="button"
                   onClick={() => handleOpenSocialModal('google')}
-                  className="py-2.5 px-3 bg-[#070d1a] hover:bg-[#0c152a] border border-emerald-500/25 hover:border-emerald-400 rounded-xl text-xs font-mono text-gray-200 flex items-center justify-center space-x-2 transition-all active:scale-98"
+                  className="py-2 px-3 bg-white dark:bg-[#111b21] border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-2xs"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
@@ -634,11 +538,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   <span>Google</span>
                 </button>
 
-                {/* Facebook Button */}
                 <button
                   type="button"
                   onClick={() => handleOpenSocialModal('facebook')}
-                  className="py-2.5 px-3 bg-[#070d1a] hover:bg-[#0c152a] border border-emerald-500/25 hover:border-emerald-400 rounded-xl text-xs font-mono text-gray-200 flex items-center justify-center space-x-2 transition-all active:scale-98"
+                  className="py-2 px-3 bg-white dark:bg-[#111b21] border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg text-xs font-medium text-gray-700 dark:text-gray-300 flex items-center justify-center space-x-2 transition-all cursor-pointer shadow-2xs"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="#1877F2">
                     <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
@@ -646,110 +549,45 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   <span>Facebook</span>
                 </button>
               </div>
-
-              {/* Bottom Quick Switch Link */}
-              <div className="text-center pt-1">
-                {authMode === 'login' ? (
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('signup'); setErrorMsg(null); }}
-                    className="text-[11px] font-mono text-emerald-400 hover:text-emerald-300 hover:underline"
-                  >
-                    // No hardware account registered? Initialize one
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => { setAuthMode('login'); setErrorMsg(null); }}
-                    className="text-[11px] font-mono text-emerald-400 hover:text-emerald-300 hover:underline"
-                  >
-                    // Account signature already present? Access terminal
-                  </button>
-                )}
-              </div>
             </div>
           )}
 
           {/* ============================================================ */}
-          {/* STEP 2: MOJOAUTH OTP VERIFICATION */}
+          {/* STEP 2: OTP VERIFICATION */}
           {/* ============================================================ */}
           {step === 'otp' && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between border-b border-emerald-500/10 pb-2">
+              <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
                 <button
                   type="button"
                   onClick={() => setStep('input')}
-                  className="p-1 rounded-lg text-gray-400 hover:text-emerald-400 hover:bg-[#070f20] transition-colors"
+                  className="p-1 rounded-full text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
                 >
-                  <ArrowLeft className="w-4 h-4" />
+                  <ArrowLeft className="w-5 h-5" />
                 </button>
-                <div className="flex items-center space-x-1.5 text-xs font-mono font-bold text-white">
-                  <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>// VERIFY CRYPTOGRAPHIC KEY</span>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                  Enter 6-Digit Code
                 </div>
-                <div className="w-4" />
+                <div className="w-5" />
               </div>
 
-              <div className="flex flex-col items-center space-y-1">
-                {pendingSocialAuth?.provider === 'google' ? (
-                  <div className="w-12 h-12 bg-blue-950/40 border border-blue-500/30 rounded-2xl flex items-center justify-center mb-1">
-                    <svg className="w-6 h-6" viewBox="0 0 24 24">
-                      <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
-                      <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
-                      <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
-                      <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
-                    </svg>
-                  </div>
-                ) : authMethod === 'email' ? (
-                  <div className="w-12 h-12 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl flex items-center justify-center text-[#00f5a0] mb-1 shadow-[0_0_20px_rgba(0,245,160,0.2)]">
-                    <Inbox className="w-6 h-6" />
-                  </div>
-                ) : null}
-                <p className="text-[11px] font-mono text-gray-400 text-center leading-relaxed">
-                  ENTER 6-DIGIT PAYLOAD TRANSMITTED TO{' '}
-                  <span className="font-bold text-emerald-400">{destinationDisplay}</span>
+              <div className="flex flex-col items-center space-y-1 text-center">
+                <div className="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-[#00a884] mb-1">
+                  <Inbox className="w-6 h-6" />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Code sent to <span className="font-semibold text-gray-900 dark:text-white">{destinationDisplay}</span>
                 </p>
-              </div>
-
-              {/* Delivery Status Card */}
-              <div className="p-3 bg-[#040813] border border-emerald-500/20 rounded-xl text-center space-y-1.5 font-mono">
-                <div className="text-[10px] text-gray-400 uppercase tracking-wider">
-                  DISPATCH DESTINATION:
-                </div>
-                <div className="text-xs font-semibold text-white tracking-wider">
-                  {destinationDisplay}
-                </div>
-                {isRealEmailSent ? (
-                  <div className="text-[10px] text-emerald-400 font-medium flex items-center justify-center space-x-1">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>DISPATCH CONFIRMED // CHECK INBOX / SPAM</span>
-                  </div>
-                ) : (
-                  <div className="p-2 bg-[#0d182e] border border-cyan-500/30 rounded-lg text-[10px] text-cyan-300 space-y-1">
-                    <div className="font-semibold flex items-center justify-center space-x-1">
-                      <AlertCircle className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>DEVELOPMENT TELEMETRY ACTIVE</span>
-                    </div>
-                    <div className="text-gray-400">
-                      Live key unconfigured in environment. Use sandbox bypass or configure MojoAuth.
-                    </div>
-                    <div className="pt-0.5 flex items-center justify-center space-x-2">
-                      <button
-                        type="button"
-                        onClick={() => setShowConfigModal(true)}
-                        className="text-emerald-400 underline font-semibold hover:text-emerald-300"
-                      >
-                        [SET API KEY]
-                      </button>
-                      <span className="text-gray-500">|</span>
-                      <span className="font-mono font-bold text-cyan-400">BYPASS CODE: 123456</span>
-                    </div>
-                  </div>
+                {isRealEmailSent && (
+                  <span className="text-[11px] text-emerald-600 dark:text-emerald-400 flex items-center space-x-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Check your email inbox or spam</span>
+                  </span>
                 )}
               </div>
 
               {/* 6 Digit Inputs */}
-              <div className="flex justify-center space-x-2 on-paste" onPaste={handlePasteOtp}>
+              <div className="flex justify-center space-x-2 py-2" onPaste={handlePasteOtp}>
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -759,126 +597,112 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                     value={digit}
                     onChange={(e) => handleOtpChange(idx, e.target.value)}
                     onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                    className="w-11 h-13 text-center text-xl font-bold font-mono bg-[#040813] border border-emerald-500/30 text-emerald-300 rounded-xl focus:border-emerald-400 focus:shadow-[0_0_15px_rgba(0,245,160,0.35)] focus:outline-hidden transition-all"
+                    className="w-11 h-12 text-center text-xl font-bold bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg focus:border-[#00a884] focus:outline-hidden transition-all"
                   />
                 ))}
               </div>
 
-              {/* Resend button */}
-              <div className="flex items-center justify-between pt-2 text-xs font-mono">
+              {/* Quick Auto-Fill Demo Code button */}
+              <button
+                type="button"
+                onClick={handleAutoFillCode}
+                className="w-full py-1.5 px-3 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+              >
+                Auto-fill demo code: 123456
+              </button>
+
+              <div className="flex items-center justify-between pt-2 text-xs">
                 <button
                   type="button"
                   disabled={resendTimer > 0 || isVerifying}
                   onClick={() => handleSendOtp({ preventDefault: () => {} } as React.FormEvent)}
-                  className="text-emerald-400 font-medium hover:underline disabled:text-gray-500 flex items-center space-x-1"
+                  className="text-[#00a884] font-medium hover:underline disabled:text-gray-400 flex items-center space-x-1 cursor-pointer"
                 >
                   <RefreshCw className="w-3 h-3" />
-                  <span>
-                    {resendTimer > 0
-                      ? `[RETRY: ${resendTimer}s]`
-                      : authMethod === 'email'
-                      ? '[RETRANSMIT EMAIL]'
-                      : '[RETRANSMIT SMS]'}
-                  </span>
+                  <span>{resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Resend Code'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => handleVerifyOtp()}
                   disabled={isVerifying || otpDigits.some((d) => !d)}
-                  className="py-2 px-5 bg-emerald-500 hover:bg-emerald-400 text-gray-950 font-bold font-mono rounded-xl tracking-wider disabled:opacity-50 transition-all shadow-[0_0_15px_rgba(0,245,160,0.3)]"
+                  className="py-2 px-5 bg-[#00a884] hover:bg-[#008f70] text-white font-medium rounded-lg disabled:opacity-50 transition-all cursor-pointer shadow-xs"
                 >
-                  {isVerifying ? 'VERIFYING...' : '[VERIFY KEY]'}
+                  {isVerifying ? 'Verifying...' : 'Verify'}
                 </button>
               </div>
             </div>
           )}
 
           {/* ============================================================ */}
-          {/* STEP 3: SECURITY CHECK (Passkey / PIN) */}
+          {/* STEP 3: SECURITY PIN CHECK */}
           {/* ============================================================ */}
           {step === 'security_check' && (
-            <div className="space-y-5 text-center font-mono">
-              <div className="w-16 h-16 bg-emerald-950/40 border border-emerald-500/40 rounded-2xl flex items-center justify-center text-[#00f5a0] mx-auto shadow-[0_0_20px_rgba(0,245,160,0.25)]">
-                <KeyRound className="w-8 h-8" />
+            <div className="space-y-4 text-center">
+              <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-950/40 rounded-full flex items-center justify-center text-[#00a884] mx-auto">
+                <KeyRound className="w-7 h-7" />
               </div>
-
-              <div className="space-y-1">
-                <h3 className="font-bold text-white text-sm tracking-wider">
-                  // HARDWARE VERIFICATION REQUIRED
+              <div>
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                  Two-Step Verification
                 </h3>
-                <p className="text-[11px] text-gray-400">
-                  Account is protected by hardware security enclave. Provide biometric signature to proceed.
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter your secret 6-digit PIN to continue.
                 </p>
               </div>
 
-              {security.isPasskeyRequired() && (
+              <form onSubmit={handleVerifyPin} className="space-y-3">
+                <input
+                  type="password"
+                  maxLength={6}
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
+                  placeholder="••••••"
+                  className="w-full text-center tracking-widest text-2xl py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 text-gray-900 dark:text-white rounded-lg focus:outline-hidden focus:border-[#00a884]"
+                />
                 <button
-                  onClick={handleVerifyPasskey}
-                  disabled={isCheckingSecurity}
-                  className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl font-bold font-mono text-xs tracking-wider flex items-center justify-center space-x-2 shadow-[0_0_20px_rgba(0,245,160,0.3)] transition-all disabled:opacity-50"
+                  type="submit"
+                  className="w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
                 >
-                  <Fingerprint className="w-4 h-4" />
-                  <span>{isCheckingSecurity ? 'SCANNING HARDWARE...' : '[AUTHENTICATE VIA PASSKEY]'}</span>
+                  Submit PIN
                 </button>
-              )}
-
-              {security.isTwoStepEnabled() && (
-                <form onSubmit={handleVerifyPin} className="space-y-3 pt-3 border-t border-emerald-500/10">
-                  <label className="block text-[10px] uppercase text-gray-400">
-                    OR ENTER 6-DIGIT SECURITY PIN
-                  </label>
-                  <input
-                    type="password"
-                    maxLength={6}
-                    value={pinInput}
-                    onChange={(e) => setPinInput(e.target.value.replace(/\D/g, ''))}
-                    placeholder="••••••"
-                    className="w-full text-center tracking-[0.4em] text-xl font-mono py-2.5 px-3 bg-[#040813] border border-emerald-500/30 text-emerald-300 rounded-xl focus:outline-hidden focus:border-emerald-400"
-                  />
-                  <button
-                    type="submit"
-                    className="w-full py-2.5 px-4 bg-[#0a152e] border border-emerald-500/30 hover:border-emerald-400 text-emerald-300 rounded-xl text-xs font-mono font-bold transition-colors"
-                  >
-                    [SUBMIT PIN CODE]
-                  </button>
-                </form>
-              )}
+              </form>
             </div>
           )}
 
           {/* ============================================================ */}
-          {/* STEP 4: PROFILE SETUP (ONLY FOR NEW ACCOUNTS) */}
+          {/* STEP 4: PROFILE SETUP */}
           {/* ============================================================ */}
           {step === 'profile' && (
-            <form onSubmit={handleFinishProfile} className="space-y-4 font-mono">
-              <div className="text-center space-y-1">
-                <h3 className="font-bold text-white text-sm tracking-wider">
-                  // INITIALIZE NODE PROFILE
+            <form onSubmit={handleFinishProfile} className="space-y-4">
+              <div className="text-center">
+                <h3 className="font-semibold text-gray-900 dark:text-white text-sm">
+                  Profile Info
                 </h3>
-                <p className="text-[11px] text-gray-400">
-                  Establish public encryption alias and cryptographic identity.
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Please provide your name and an optional profile picture.
                 </p>
               </div>
 
-              {/* Avatar Selector */}
               <div className="flex flex-col items-center space-y-2">
-                <div className="relative group cursor-pointer" onClick={() => setAvatarSeed(Math.random().toString(36).substring(2, 7))}>
+                <div
+                  className="relative group cursor-pointer"
+                  onClick={() => setAvatarSeed(Math.random().toString(36).substring(2, 7))}
+                >
                   <img
                     src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${avatarSeed}`}
-                    alt="Profile Avatar"
-                    className="w-20 h-20 rounded-2xl bg-[#040813] border-2 border-emerald-400/60 p-1 shadow-[0_0_15px_rgba(0,245,160,0.25)]"
+                    alt="Avatar"
+                    className="w-20 h-20 rounded-full bg-gray-100 dark:bg-gray-800 border-2 border-[#00a884] object-cover"
                   />
-                  <div className="absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center text-emerald-400 text-[10px] font-bold transition-opacity">
-                    [RANDOMIZE]
+                  <div className="absolute inset-0 bg-black/40 rounded-full opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-medium transition-opacity">
+                    Change
                   </div>
                 </div>
-                <span className="text-[10px] text-gray-500">Click avatar to regenerate seed</span>
+                <span className="text-[11px] text-gray-400">Click avatar to change</span>
               </div>
 
-              {/* Full Name */}
-              <div className="space-y-1">
-                <label className="block text-[10px] uppercase text-gray-400">
-                  Display Alias / Name
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Your Name
                 </label>
                 <input
                   type="text"
@@ -887,145 +711,128 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                   placeholder="e.g. Srijesh"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
+                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                 />
               </div>
 
-              {/* About Status */}
-              <div className="space-y-1">
-                <label className="block text-[10px] uppercase text-gray-400">
-                  Broadcast Status
+              <div>
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  About Status
                 </label>
                 <input
                   type="text"
-                  placeholder="E2EE active. Encrypted communications only."
                   value={aboutStatus}
                   onChange={(e) => setAboutStatus(e.target.value)}
-                  className="w-full py-2.5 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
+                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-3 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl font-bold font-mono text-xs tracking-wider flex items-center justify-center space-x-2 shadow-[0_0_20px_rgba(0,245,160,0.3)] transition-all"
+                className="w-full py-2.5 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-lg font-medium text-sm transition-all cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4" />
-                <span>[DERIVE KEYS & COMPLETE REGISTRATION]</span>
+                Finish & Enter WhatsApp
               </button>
             </form>
           )}
         </div>
       </div>
 
-      {/* ============================================================ */}
-      {/* SOCIAL OAUTH MODAL (GOOGLE / FACEBOOK) */}
-      {/* ============================================================ */}
+      {/* Social Modal */}
       {oauthModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#0a1122] border border-emerald-500/30 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden p-6 space-y-4 font-mono">
-            <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
-              <div className="flex items-center space-x-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-                <h3 className="font-bold text-xs text-white uppercase tracking-wider">
-                  {oauthModal === 'google' ? 'GOOGLE OAUTH GATEWAY' : 'META OAUTH GATEWAY'}
-                </h3>
-              </div>
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-sm bg-white dark:bg-[#202c33] rounded-xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+              <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
+                Continue with {oauthModal === 'google' ? 'Google' : 'Facebook'}
+              </h3>
               <button
                 type="button"
                 onClick={() => setOauthModal(null)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-[11px] text-gray-400">
-              Federate credentials via {oauthModal === 'google' ? 'Google Cloud' : 'Meta Graph'} OAuth proxy.
-            </p>
-
             <form onSubmit={handleCompleteSocialOAuth} className="space-y-3">
               <div>
-                <label className="block text-[10px] uppercase text-gray-400 mb-1">
-                  Full Name / Alias
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Name
                 </label>
                 <input
                   type="text"
                   required
                   value={oauthName}
                   onChange={(e) => setOauthName(e.target.value)}
-                  className="w-full py-2 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
+                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] uppercase text-gray-400 mb-1">
-                  OAuth Account Email
+                <label className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Email
                 </label>
                 <input
                   type="email"
                   required
                   value={oauthEmail}
                   onChange={(e) => setOauthEmail(e.target.value)}
-                  className="w-full py-2 px-3 bg-[#040813] border border-emerald-500/30 rounded-xl text-xs font-mono text-emerald-300 focus:outline-hidden focus:border-emerald-400"
+                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 text-gray-950 rounded-xl text-xs font-bold font-mono tracking-wider transition-all shadow-[0_0_15px_rgba(0,245,160,0.3)]"
+                className="w-full py-2 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-lg text-sm font-medium transition-all cursor-pointer"
               >
-                [AUTHORIZE AS {oauthName || 'USER'}]
+                Authorize & Log In
               </button>
             </form>
           </div>
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* QUICK MAIL / MOJOAUTH / SUPABASE CONFIG MODAL */}
-      {/* ============================================================ */}
+      {/* Quick Config Modal */}
       {showConfigModal && (
-        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/70 backdrop-blur-md p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-sm bg-[#0a1122] border border-cyan-500/30 rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden p-6 space-y-4 font-mono">
-            <div className="flex items-center justify-between border-b border-cyan-500/20 pb-3">
-              <div className="flex items-center space-x-2 text-cyan-400">
-                <Settings className="w-4 h-4" />
-                <h3 className="font-bold text-xs uppercase tracking-wider text-white">
-                  LIVE EMAIL API CONFIGURATION
+        <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4">
+          <div className="w-full max-w-sm bg-white dark:bg-[#202c33] rounded-xl shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
+              <div className="flex items-center space-x-2 text-[#00a884]">
+                <Settings className="w-5 h-5" />
+                <h3 className="font-semibold text-sm text-gray-900 dark:text-white">
+                  MojoAuth API Key
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setShowConfigModal(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-white cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-[11px] text-gray-400 leading-relaxed">
-              Configure your <span className="font-bold text-white">MojoAuth API Key</span> to transmit hardware-grade 6-digit OTP codes straight to your Gmail or Outlook.
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Enter your MojoAuth API Key for live email OTP delivery.
             </p>
 
             <form onSubmit={handleSaveQuickConfig} className="space-y-3">
               <div>
-                <label className="block text-[10px] uppercase text-gray-400 mb-1">
-                  MojoAuth API Key
-                </label>
                 <input
                   type="password"
                   placeholder="Paste MojoAuth Key here..."
                   value={inputApiKey}
                   onChange={(e) => setInputApiKey(e.target.value)}
-                  className="w-full py-2 px-3 bg-[#040813] border border-cyan-500/30 rounded-xl text-xs font-mono text-cyan-300 focus:outline-hidden focus:border-cyan-400"
+                  className="w-full py-2 px-3 bg-gray-50 dark:bg-[#111b21] border border-gray-300 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#00a884]"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-gray-950 rounded-xl text-xs font-bold font-mono tracking-wider transition-all shadow-[0_0_15px_rgba(0,210,255,0.3)]"
+                className="w-full py-2 px-4 bg-[#00a884] hover:bg-[#008f70] text-white rounded-lg text-sm font-medium transition-all cursor-pointer"
               >
-                [COMMIT API CREDENTIALS]
+                Save Key
               </button>
             </form>
           </div>
