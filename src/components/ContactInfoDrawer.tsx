@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Lock, Bell, Star, Clock, ShieldAlert, Phone, Video, FileText, ShieldCheck, Terminal, Cpu, Radio } from 'lucide-react';
+import { X, Lock, Bell, Star, Clock, ShieldAlert, Phone, Video, FileText } from 'lucide-react';
 import { supabaseData } from '../services/supabase';
 import type { Conversation } from '../services/supabase';
 
@@ -21,102 +21,84 @@ export const ContactInfoDrawer: React.FC<ContactInfoDrawerProps> = ({
   };
 
   return (
-    <div className="w-80 sm:w-96 h-full bg-[#0a0f12] border-l border-cyan-500/20 flex flex-col overflow-y-auto select-none animate-in slide-in-from-right-10 duration-200 cyber-grid-dark text-slate-300">
+    <div className="w-80 sm:w-96 h-full bg-[#f0f2f5] dark:bg-[#111b21] border-l border-gray-200 dark:border-gray-800 flex flex-col overflow-y-auto select-none animate-in slide-in-from-right-10 duration-200 text-gray-800 dark:text-gray-200">
       {/* Drawer Header */}
-      <div className="h-14 px-6 flex items-center justify-between bg-[#070b0e] border-b border-cyan-500/20 shrink-0">
-        <div className="flex items-center space-x-2">
-          <Terminal className="w-4 h-4 text-cyan-400" />
-          <h3 className="font-mono text-xs font-bold text-slate-100 uppercase tracking-wider">
-            PEER_IDENTITY_DOSSIER
-          </h3>
-        </div>
+      <div className="h-15 px-6 flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33] border-b border-gray-200 dark:border-gray-800 shrink-0">
+        <h3 className="font-semibold text-sm">Contact info</h3>
         <button
           onClick={onClose}
-          className="p-1.5 rounded-lg border border-slate-800 hover:border-cyan-500/40 hover:bg-cyan-500/10 text-slate-400 hover:text-white transition-colors"
+          className="p-1 rounded-full text-gray-500 hover:text-gray-800 dark:hover:text-white transition-colors cursor-pointer"
         >
-          <X className="w-4 h-4" />
+          <X className="w-5 h-5" />
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto space-y-3 pb-8">
         {/* Profile Card */}
-        <div className="p-6 bg-[#0d1418] border-b border-cyan-500/20 flex flex-col items-center text-center relative overflow-hidden">
-          <div className="relative">
-            <img
-              src={conversation.avatarUrl}
-              alt={conversation.name}
-              className="w-28 h-28 rounded-2xl object-cover border-2 border-cyan-500/30 shadow-lg shadow-cyan-950/50"
-            />
-            <div className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400 flex items-center justify-center text-emerald-400">
-              <Radio className="w-3.5 h-3.5 animate-pulse" />
-            </div>
-          </div>
-
-          <h2 className="text-base font-bold font-mono text-slate-100 mt-4 tracking-wider uppercase">
+        <div className="p-6 bg-white dark:bg-[#111b21] flex flex-col items-center text-center shadow-xs">
+          <img
+            src={conversation.avatarUrl}
+            alt={conversation.name}
+            className="w-36 h-36 rounded-full object-cover shadow-sm bg-gray-200 dark:bg-gray-700"
+          />
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white mt-4">
             {conversation.name}
           </h2>
-          <p className="text-[11px] font-mono text-cyan-400/80 mt-0.5">
-            NODE_ADDR: {conversation.phoneNumber || 'PEER_EPHEMERAL_NODE'}
+          <p className="text-sm text-gray-500 mt-0.5">
+            {conversation.phoneNumber || 'WhatsApp Contact'}
           </p>
 
-          <div className="flex items-center space-x-2 mt-2">
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-              CHANNEL: AES-256-GCM
-            </span>
-            <span className="text-[9px] font-mono px-2 py-0.5 rounded-sm bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-              HANDSHAKE: ACTIVE
-            </span>
-          </div>
-
-          {/* Call shortcut buttons */}
-          <div className="flex items-center space-x-4 mt-5">
+          {/* Call buttons */}
+          <div className="flex items-center space-x-6 mt-4">
             <button
               onClick={() => onStartCall(false)}
-              className="flex items-center space-x-2 px-4 py-2 bg-[#111a20] hover:bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-mono uppercase tracking-wider transition-all"
+              className="flex flex-col items-center space-y-1 text-gray-600 dark:text-gray-400 hover:text-[#00a884] dark:hover:text-[#00a884] transition-colors cursor-pointer"
             >
-              <Phone className="w-3.5 h-3.5 text-cyan-400" />
-              <span>VOIP [SRTP]</span>
+              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#202c33] flex items-center justify-center">
+                <Phone className="w-5 h-5" />
+              </div>
+              <span className="text-xs">Audio</span>
             </button>
             <button
               onClick={() => onStartCall(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-[#111a20] hover:bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-mono uppercase tracking-wider transition-all"
+              className="flex flex-col items-center space-y-1 text-gray-600 dark:text-gray-400 hover:text-[#00a884] dark:hover:text-[#00a884] transition-colors cursor-pointer"
             >
-              <Video className="w-3.5 h-3.5 text-cyan-400" />
-              <span>VIDEO [VP9]</span>
+              <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#202c33] flex items-center justify-center">
+                <Video className="w-5 h-5" />
+              </div>
+              <span className="text-xs">Video</span>
             </button>
           </div>
         </div>
 
-        {/* Status / Telemetry */}
-        <div className="p-4 bg-[#0d1418] border-y border-cyan-500/20 space-y-1">
-          <div className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-            STATUS_METRIC
-          </div>
-          <div className="text-xs text-slate-200 font-sans">
+        {/* About section */}
+        <div className="p-4 bg-white dark:bg-[#111b21] shadow-xs space-y-1">
+          <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider">About</div>
+          <div className="text-sm text-gray-800 dark:text-gray-200">
             {conversation.aboutStatus || 'Hey there! I am using WhatsApp.'}
           </div>
         </div>
 
         {/* Media, links and docs */}
-        <div className="p-4 bg-[#0d1418] border-y border-cyan-500/20 space-y-3">
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-            <span>PACKET PAYLOAD ARCHIVE</span>
-            <span className="text-cyan-400">12 ITEMS</span>
+        <div className="p-4 bg-white dark:bg-[#111b21] shadow-xs space-y-3">
+          <div className="flex items-center justify-between text-xs font-semibold text-gray-400 uppercase tracking-wider">
+            <span>Media, links and docs</span>
+            <span className="text-gray-400">12</span>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <img
               src="https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=120"
               alt="Media item"
-              className="w-full h-16 object-cover rounded-lg border border-cyan-500/20"
+              className="w-full h-20 object-cover rounded-lg"
             />
             <img
               src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=120"
               alt="Media item"
-              className="w-full h-16 object-cover rounded-lg border border-cyan-500/20"
+              className="w-full h-20 object-cover rounded-lg"
             />
-            <div className="w-full h-16 bg-[#111a20] border border-cyan-500/20 rounded-lg flex flex-col items-center justify-center text-cyan-400 text-[10px] font-mono">
-              <FileText className="w-4 h-4 mb-1" />
-              <span>KEY_DOC.PDF</span>
+            <div className="w-full h-20 bg-gray-100 dark:bg-[#202c33] rounded-lg flex flex-col items-center justify-center text-gray-400 text-xs">
+              <FileText className="w-5 h-5 mb-1" />
+              <span>Document</span>
             </div>
           </div>
         </div>
@@ -124,58 +106,54 @@ export const ContactInfoDrawer: React.FC<ContactInfoDrawerProps> = ({
         {/* Encryption & Safety Number Card */}
         <div
           onClick={onOpenSafetyNumber}
-          className="p-4 bg-[#0d1418] border-y border-cyan-500/20 flex items-start space-x-3.5 cursor-pointer hover:bg-cyan-500/5 transition-colors"
+          className="p-4 bg-white dark:bg-[#111b21] shadow-xs flex items-start space-x-3.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-[#182229] transition-colors"
         >
-          <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mt-0.5 shrink-0">
-            <Lock className="w-4 h-4" />
+          <div className="text-[#00a884] mt-0.5">
+            <Lock className="w-5 h-5" />
           </div>
-          <div className="space-y-1 flex-1">
-            <div className="text-xs font-mono font-bold text-slate-100 flex items-center justify-between">
-              <span className="uppercase">END-TO-END CIPHER</span>
-              {conversation.safetyNumberVerified ? (
-                <span className="text-[9px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 py-0.2 rounded font-mono font-bold">
-                  RATIFIED
-                </span>
-              ) : (
-                <span className="text-[9px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.2 rounded font-mono font-bold">
-                  UNVERIFIED
+          <div className="space-y-0.5 flex-1">
+            <div className="text-sm font-medium text-gray-900 dark:text-white flex items-center justify-between">
+              <span>Encryption</span>
+              {conversation.safetyNumberVerified && (
+                <span className="text-[10px] bg-emerald-100 dark:bg-emerald-950/80 text-[#00a884] px-2 py-0.5 rounded-full font-bold">
+                  VERIFIED
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-400 leading-relaxed font-sans">
-              Payloads encrypted with 256-bit pairwise keys. Tap to inspect 60-digit fingerprint matrix.
+            <p className="text-xs text-gray-500 leading-relaxed">
+              Messages and calls are end-to-end encrypted. Tap to verify.
             </p>
           </div>
         </div>
 
-        {/* Ephemeral Packet TTL (Disappearing Messages) */}
-        <div className="p-4 bg-[#0d1418] border-y border-cyan-500/20 space-y-3">
+        {/* Disappearing Messages */}
+        <div className="p-4 bg-white dark:bg-[#111b21] shadow-xs space-y-3">
           <div className="flex items-start space-x-3">
-            <Clock className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
+            <Clock className="w-5 h-5 text-gray-400 mt-0.5" />
             <div className="flex-1">
-              <div className="text-xs font-mono font-bold text-slate-100 uppercase tracking-wider">
-                EPHEMERAL PACKET TTL
+              <div className="text-sm font-medium text-gray-900 dark:text-white">
+                Disappearing messages
               </div>
-              <p className="text-[11px] text-slate-400 mt-0.5 font-sans">
-                Autonomous payload wipe after expiration window.
+              <p className="text-xs text-gray-500 mt-0.5">
+                Make messages disappear from this chat.
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-4 gap-1.5 pt-1 font-mono text-[10px]">
+          <div className="grid grid-cols-4 gap-1.5 pt-1">
             {[
-              { label: 'OFF', sec: 0 },
-              { label: '24 HRS', sec: 86400 },
-              { label: '7 DAYS', sec: 604800 },
-              { label: '90 DAYS', sec: 7776000 },
+              { label: 'Off', sec: 0 },
+              { label: '24 hrs', sec: 86400 },
+              { label: '7 days', sec: 604800 },
+              { label: '90 days', sec: 7776000 },
             ].map((opt) => (
               <button
                 key={opt.sec}
                 onClick={() => handleDisappearingChange(opt.sec)}
-                className={`py-1.5 rounded-lg border transition-all ${
+                className={`py-1.5 text-xs font-medium rounded-lg border transition-all cursor-pointer ${
                   conversation.disappearingDuration === opt.sec
-                    ? 'border-cyan-400 bg-cyan-500/15 text-cyan-300 font-bold shadow-xs'
-                    : 'border-slate-800 text-slate-400 hover:bg-slate-800/60'
+                    ? 'border-[#00a884] bg-emerald-50 dark:bg-emerald-950/50 text-[#00a884]'
+                    : 'border-gray-200 dark:border-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                 }`}
               >
                 {opt.label}
@@ -184,40 +162,32 @@ export const ContactInfoDrawer: React.FC<ContactInfoDrawerProps> = ({
           </div>
         </div>
 
-        {/* Telemetry / Mute */}
-        <div className="bg-[#0d1418] border-y border-cyan-500/20 divide-y divide-cyan-500/10 font-mono text-xs">
-          <div className="p-3.5 flex items-center justify-between">
-            <div className="flex items-center space-x-3 text-slate-300">
-              <Bell className="w-4 h-4 text-slate-500" />
-              <span>SILENCE_NOTIFICATIONS</span>
+        {/* Notifications & Stars */}
+        <div className="bg-white dark:bg-[#111b21] shadow-xs divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="p-4 flex items-center justify-between">
+            <div className="flex items-center space-x-3 text-sm text-gray-800 dark:text-gray-200">
+              <Bell className="w-5 h-5 text-gray-400" />
+              <span>Mute notifications</span>
             </div>
-            <input type="checkbox" className="accent-cyan-400 w-3.5 h-3.5 cursor-pointer" />
+            <input type="checkbox" className="accent-[#00a884] w-4 h-4 cursor-pointer" />
           </div>
-          <div className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-cyan-500/5">
-            <div className="flex items-center space-x-3 text-slate-300">
-              <Star className="w-4 h-4 text-slate-500" />
-              <span>STARRED_PACKETS</span>
+          <div className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-[#182229]">
+            <div className="flex items-center space-x-3 text-sm text-gray-800 dark:text-gray-200">
+              <Star className="w-5 h-5 text-gray-400" />
+              <span>Starred messages</span>
             </div>
-            <span className="text-[10px] text-slate-500">0 RECORDED</span>
+            <span className="text-xs text-gray-400">None</span>
           </div>
         </div>
 
-        {/* Danger zone: Block */}
-        <div className="p-4 bg-[#0d1418] border-y border-red-500/20">
-          <button className="w-full py-2.5 px-3 flex items-center justify-center space-x-2 text-xs font-mono uppercase tracking-wider text-red-400 hover:text-red-300 bg-red-950/20 hover:bg-red-950/40 border border-red-500/30 rounded-xl transition-colors">
-            <ShieldAlert className="w-4 h-4 text-red-400" />
-            <span>TERMINATE ROUTING // BLOCK PEER</span>
+        {/* Block */}
+        <div className="bg-white dark:bg-[#111b21] shadow-xs">
+          <button className="w-full p-4 flex items-center space-x-3 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 text-left transition-colors cursor-pointer">
+            <ShieldAlert className="w-5 h-5" />
+            <span>Block {conversation.name}</span>
           </button>
-        </div>
-
-        {/* Enclave badge */}
-        <div className="px-6 text-center text-[10px] font-mono text-slate-500 flex items-center justify-center space-x-1.5">
-          <Cpu className="w-3.5 h-3.5 text-cyan-400" />
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>PEER_KEY_VERIFIED • DOUBLE_RATCHET_V3</span>
         </div>
       </div>
     </div>
   );
 };
-
