@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   RefreshCw,
   KeyRound,
+  ShieldCheck,
   Inbox,
   AlertCircle,
   X,
@@ -54,12 +55,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const [oauthName, setOauthName] = useState('');
   const [oauthEmail, setOauthEmail] = useState('');
 
-  // Google Account Chooser state
+  // Google Authenticator & Account Chooser state
   const [googleAccounts, setGoogleAccounts] = useState([
     {
       name: 'Srijesh K',
       email: 'srijeshkookal@gmail.com',
-      avatarBg: '#d9531e',
+      avatarBg: '#ea4335',
       letter: 'S',
     },
     {
@@ -69,7 +70,16 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       letter: 'S',
     },
   ]);
-  const [showAddGoogleAccount, setShowAddGoogleAccount] = useState(false);
+  const [googleAuthStep, setGoogleAuthStep] = useState<'chooser' | 'email_input' | 'authenticator_2fa'>('chooser');
+  const [selectedGoogleAccount, setSelectedGoogleAccount] = useState<{
+    name: string;
+    email: string;
+    avatarBg: string;
+    letter: string;
+  } | null>(null);
+  const [google2faCode, setGoogle2faCode] = useState('');
+  const [googleRememberDevice, setGoogleRememberDevice] = useState(true);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [newGoogleEmail, setNewGoogleEmail] = useState('');
   const [newGoogleName, setNewGoogleName] = useState('');
 
@@ -110,8 +120,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   useEffect(() => {
     const handlePopState = () => {
       if (oauthModal) {
-        setOauthModal(null);
-        setShowAddGoogleAccount(false);
+        if (googleAuthStep === 'authenticator_2fa') {
+          setGoogleAuthStep('chooser');
+          setGoogle2faCode('');
+          setErrorMsg(null);
+        } else if (googleAuthStep === 'email_input') {
+          setGoogleAuthStep('chooser');
+          setErrorMsg(null);
+        } else {
+          setOauthModal(null);
+          setGoogleAuthStep('chooser');
+          setSelectedGoogleAccount(null);
+          setErrorMsg(null);
+        }
       } else if (step !== 'input') {
         setStep('input');
         setErrorMsg(null);
@@ -119,7 +140,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [step, oauthModal]);
+  }, [step, oauthModal, googleAuthStep]);
 
   const goToStep = (newStep: 'input' | 'otp' | 'security_check' | 'profile') => {
     if (newStep !== 'input') {
@@ -317,7 +338,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     setErrorMsg(null);
     window.history.pushState({ oauth: provider }, '');
     if (provider === 'google') {
-      setShowAddGoogleAccount(false);
+      setGoogleAuthStep('chooser');
+      setSelectedGoogleAccount(null);
+      setGoogle2faCode('');
       setNewGoogleEmail('');
       setNewGoogleName('');
     } else if (provider === 'github') {
@@ -330,7 +353,33 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     setOauthModal(provider);
   };
 
-  const handleSelectGoogleAccount = (acc: { name: string; email: string }) => {
+  const handleStartGoogle2FA = (acc: { name: string; email: string; avatarBg: string; letter: string }) => {
+    setSelectedGoogleAccount(acc);
+    setGoogleAuthStep('authenticator_2fa');
+    setGoogle2faCode('');
+    setErrorMsg(null);
+  };
+
+  const handleVerifyGoogle2FA = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedGoogleAccount) return;
+
+    const cleanCode = google2faCode.replace(/\D/g, '');
+    if (cleanCode.length !== 6) {
+      setErrorMsg('Please enter the 6-digit Google Authenticator code.');
+      return;
+    }
+
+    setIsGoogleLoading(true);
+    setErrorMsg(null);
+
+    setTimeout(() => {
+      setIsGoogleLoading(false);
+      handleFinishGoogleLogin(selectedGoogleAccount);
+    }, 600);
+  };
+
+  const handleFinishGoogleLogin = (acc: { name: string; email: string }) => {
     const cleanId = acc.email.trim().toLowerCase();
     const existing = supabaseData.findAccount(cleanId);
 
@@ -362,6 +411,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       onSuccess(newUser);
     }
     setOauthModal(null);
+    setGoogleAuthStep('chooser');
   };
 
   const handleAddCustomGoogleAccount = (e: React.FormEvent) => {
@@ -376,7 +426,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       letter: cleanName.charAt(0).toUpperCase() || 'G',
     };
     setGoogleAccounts((prev) => [...prev, newAcc]);
-    handleSelectGoogleAccount(newAcc);
+    handleStartGoogle2FA(newAcc);
   };
 
   const handleCompleteSocialOAuth = async (e: React.FormEvent) => {
@@ -836,63 +886,185 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
         </div>
       </div>
 
-      {/* Google Account Chooser Modal (Matches Google Sign-In exactly) */}
+      {/* Google Sign-In & Google Authenticator Modal */}
       {oauthModal === 'google' && (
-        <div className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-black/80 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="w-full max-w-2xl flex flex-col space-y-4 my-auto animate-in fade-in zoom-in-95 duration-150">
+        <div className="fixed inset-0 z-60 flex flex-col items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+          <div className="w-full max-w-3xl flex flex-col space-y-3.5 my-auto animate-in fade-in zoom-in-95 duration-150">
             {/* Main Google Card */}
-            <div className="bg-[#1f1f1f] sm:bg-[#131314] border border-[#303134] rounded-[28px] overflow-hidden shadow-2xl flex flex-col">
+            <div className="bg-white dark:bg-[#1f1f1f] text-gray-900 dark:text-[#e3e3e3] border border-gray-200 dark:border-[#303134] rounded-[28px] overflow-hidden shadow-2xl flex flex-col">
               {/* Header */}
-              <div className="flex items-center justify-between px-6 py-4 border-b border-[#303134]/60">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-[#303134]/60">
                 <div className="flex items-center space-x-2.5">
-                  <svg className="w-5 h-5" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
                     <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
                     <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
                     <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
                   </svg>
-                  <span className="text-sm font-medium text-[#e3e3e3]">Sign in with Google</span>
+                  <span className="text-sm font-medium text-gray-700 dark:text-[#e3e3e3]">
+                    {googleAuthStep === 'authenticator_2fa' ? 'Google Authenticator · 2-Step Verification' : 'Sign in with Google'}
+                  </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
                     setOauthModal(null);
-                    setShowAddGoogleAccount(false);
+                    setGoogleAuthStep('chooser');
+                    setSelectedGoogleAccount(null);
+                    setErrorMsg(null);
                   }}
-                  className="p-1.5 rounded-full text-[#c4c7c5] hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                  className="p-1.5 rounded-full text-gray-500 dark:text-[#c4c7c5] hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer"
                   title="Close"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Two Column Layout */}
+              {/* Two Column Layout (Authentic Material 3) */}
               <div className="p-8 sm:p-10 grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
                 {/* Left Column: Brand & Title */}
                 <div className="flex flex-col justify-start">
-                  {/* WhatsApp App Badge */}
-                  <div className="w-10 h-10 rounded-full bg-[#00a884] flex items-center justify-center text-white mb-6 shadow-md">
-                    <MessageSquare className="w-5 h-5" />
-                  </div>
-                  <h1 className="text-3xl sm:text-4xl font-normal text-white tracking-tight leading-tight">
-                    Choose an account
-                  </h1>
-                  <p className="text-sm text-[#c4c7c5] mt-3">
-                    to continue to <span className="text-[#a8c7fa] font-medium">WhatsApp Web</span>
-                  </p>
+                  {googleAuthStep === 'authenticator_2fa' ? (
+                    <>
+                      <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-[#0b57d0] dark:text-[#a8c7fa] mb-6 shadow-xs">
+                        <ShieldCheck className="w-7 h-7" />
+                      </div>
+                      <h1 className="text-2xl sm:text-3xl font-normal text-gray-900 dark:text-white tracking-tight leading-snug">
+                        2-Step Verification
+                      </h1>
+                      <p className="text-sm text-gray-600 dark:text-[#c4c7c5] mt-2">
+                        Get a verification code from your <strong className="text-gray-900 dark:text-white">Google Authenticator</strong> app
+                      </p>
+
+                      {selectedGoogleAccount && (
+                        <div className="mt-5 inline-flex items-center space-x-2.5 px-3.5 py-1.5 rounded-full border border-gray-200 dark:border-[#444746] bg-gray-50 dark:bg-[#282a2c] w-fit">
+                          <div
+                            className="w-5 h-5 rounded-full text-white flex items-center justify-center text-[10px] font-bold"
+                            style={{ backgroundColor: selectedGoogleAccount.avatarBg }}
+                          >
+                            {selectedGoogleAccount.letter}
+                          </div>
+                          <span className="text-xs font-medium text-gray-800 dark:text-gray-200">
+                            {selectedGoogleAccount.email}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center space-x-3 mb-6">
+                        <svg className="w-10 h-10 shrink-0" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z" />
+                          <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z" />
+                          <path fill="#FBBC05" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 9.99 0 12s.45 3.82 1.25 5.42l4.03-3.15z" />
+                          <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z" />
+                        </svg>
+                        <div className="w-8 h-8 rounded-full bg-[#00a884] flex items-center justify-center text-white shadow-xs">
+                          <MessageSquare className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <h1 className="text-3xl font-normal text-gray-900 dark:text-white tracking-tight leading-tight">
+                        {googleAuthStep === 'chooser' ? 'Choose an account' : 'Sign in'}
+                      </h1>
+                      <p className="text-sm text-gray-600 dark:text-[#c4c7c5] mt-3">
+                        to continue to <span className="text-[#0b57d0] dark:text-[#a8c7fa] font-medium">WhatsApp Web</span>
+                      </p>
+                    </>
+                  )}
                 </div>
 
-                {/* Right Column: Account List or Add Account */}
+                {/* Right Column: Dynamic View */}
                 <div className="flex flex-col justify-between space-y-6">
-                  {!showAddGoogleAccount ? (
+                  {googleAuthStep === 'authenticator_2fa' ? (
+                    /* STEP 2: Authenticator 2-Step Verification */
+                    <form onSubmit={handleVerifyGoogle2FA} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-gray-600 dark:text-[#c4c7c5] leading-relaxed">
+                          Enter the 6-digit verification code generated by your <strong>Google Authenticator</strong> app.
+                        </p>
+                      </div>
+
+                      {/* Code Input */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">
+                          Enter code
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3.5 top-3 text-base font-semibold text-gray-500 dark:text-gray-400 select-none">
+                            G-
+                          </span>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            autoFocus
+                            placeholder="123456"
+                            value={google2faCode}
+                            onChange={(e) => setGoogle2faCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            className="w-full pl-10 pr-4 py-3 bg-white dark:bg-[#131314] border border-gray-300 dark:border-[#747775] focus:border-[#0b57d0] dark:focus:border-[#a8c7fa] focus:ring-1 focus:ring-[#0b57d0] dark:focus:ring-[#a8c7fa] focus:outline-hidden rounded-lg text-lg tracking-widest font-semibold text-gray-900 dark:text-white transition-all shadow-2xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Demo auto-fill */}
+                      <button
+                        type="button"
+                        onClick={() => setGoogle2faCode('123456')}
+                        className="w-full py-1.5 px-3 bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-900/40 text-[#0b57d0] dark:text-[#a8c7fa] rounded-lg text-xs font-medium transition-colors cursor-pointer text-center"
+                      >
+                        Auto-fill authenticator code: 123456
+                      </button>
+
+                      {/* Remember device checkbox */}
+                      <label className="flex items-center space-x-2 text-xs text-gray-600 dark:text-gray-300 cursor-pointer pt-1">
+                        <input
+                          type="checkbox"
+                          checked={googleRememberDevice}
+                          onChange={(e) => setGoogleRememberDevice(e.target.checked)}
+                          className="rounded border-gray-300 text-[#0b57d0] focus:ring-[#0b57d0]"
+                        />
+                        <span>Don't ask again on this device</span>
+                      </label>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-between pt-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setGoogleAuthStep('chooser');
+                            setGoogle2faCode('');
+                            setErrorMsg(null);
+                          }}
+                          className="text-xs font-medium text-[#0b57d0] dark:text-[#a8c7fa] hover:underline cursor-pointer"
+                        >
+                          Back
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isGoogleLoading || google2faCode.length !== 6}
+                          className="py-2.5 px-7 bg-[#0b57d0] hover:bg-[#0842a0] dark:bg-[#a8c7fa] dark:hover:bg-[#b8d4fa] text-white dark:text-[#062e6f] font-semibold text-xs rounded-full cursor-pointer transition-all disabled:opacity-40 shadow-xs flex items-center space-x-1.5"
+                        >
+                          {isGoogleLoading ? (
+                            <>
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                              <span>Verifying...</span>
+                            </>
+                          ) : (
+                            <span>Next</span>
+                          )}
+                        </button>
+                      </div>
+                    </form>
+                  ) : googleAuthStep === 'chooser' ? (
+                    /* STEP 1A: Choose an Account */
                     <>
                       <div className="space-y-1">
                         {googleAccounts.map((acc, idx) => (
                           <button
                             key={idx}
                             type="button"
-                            onClick={() => handleSelectGoogleAccount(acc)}
-                            className="w-full flex items-center space-x-3.5 p-3 rounded-xl hover:bg-[#282a2c] transition-colors text-left cursor-pointer border-b border-[#303134]/60 last:border-b-0 group"
+                            onClick={() => handleStartGoogle2FA(acc)}
+                            className="w-full flex items-center space-x-3.5 p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors text-left cursor-pointer border-b border-gray-100 dark:border-[#303134]/60 last:border-b-0 group"
                           >
                             <div
                               className="w-9 h-9 rounded-full text-white flex items-center justify-center font-medium text-sm shrink-0 shadow-xs"
@@ -901,47 +1073,52 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                               {acc.letter}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <div className="text-sm font-medium text-[#e3e3e3] group-hover:text-white truncate">
+                              <div className="text-sm font-medium text-gray-900 dark:text-[#e3e3e3] group-hover:text-[#0b57d0] dark:group-hover:text-white truncate">
                                 {acc.name}
                               </div>
-                              <div className="text-xs text-[#8e918f] truncate">
+                              <div className="text-xs text-gray-500 dark:text-[#8e918f] truncate">
                                 {acc.email}
                               </div>
                             </div>
+                            <span className="text-[11px] font-medium text-[#0b57d0] dark:text-[#a8c7fa] opacity-0 group-hover:opacity-100 transition-opacity">
+                              2FA
+                            </span>
                           </button>
                         ))}
 
                         {/* Use another account option */}
                         <button
                           type="button"
-                          onClick={() => setShowAddGoogleAccount(true)}
-                          className="w-full flex items-center space-x-3.5 p-3 rounded-xl hover:bg-[#282a2c] transition-colors text-left cursor-pointer group"
+                          onClick={() => setGoogleAuthStep('email_input')}
+                          className="w-full flex items-center space-x-3.5 p-3 rounded-xl hover:bg-gray-100 dark:hover:bg-[#282a2c] transition-colors text-left cursor-pointer group"
                         >
-                          <div className="w-9 h-9 rounded-full border border-[#8e918f] text-[#c4c7c5] flex items-center justify-center shrink-0 group-hover:border-white group-hover:text-white">
+                          <div className="w-9 h-9 rounded-full border border-gray-400 dark:border-[#8e918f] text-gray-600 dark:text-[#c4c7c5] flex items-center justify-center shrink-0 group-hover:border-gray-900 dark:group-hover:border-white group-hover:text-gray-900 dark:group-hover:text-white">
                             <UserPlus className="w-4 h-4" />
                           </div>
-                          <div className="text-sm font-medium text-[#e3e3e3] group-hover:text-white">
+                          <div className="text-sm font-medium text-gray-900 dark:text-[#e3e3e3] group-hover:text-[#0b57d0] dark:group-hover:text-white">
                             Use another account
                           </div>
                         </button>
                       </div>
 
                       {/* Disclaimer text */}
-                      <p className="text-xs text-[#8e918f] leading-relaxed pt-2">
+                      <p className="text-xs text-gray-500 dark:text-[#8e918f] leading-relaxed pt-2">
                         Before using this app, you can review WhatsApp Web's{' '}
-                        <span className="text-[#a8c7fa] hover:underline cursor-pointer">Privacy Policy</span> and{' '}
-                        <span className="text-[#a8c7fa] hover:underline cursor-pointer">Terms of Service</span>.
+                        <span className="text-[#0b57d0] dark:text-[#a8c7fa] hover:underline cursor-pointer">Privacy Policy</span> and{' '}
+                        <span className="text-[#0b57d0] dark:text-[#a8c7fa] hover:underline cursor-pointer">Terms of Service</span>.
                       </p>
                     </>
                   ) : (
-                    /* Enter custom Google Account */
+                    /* STEP 1B: Enter custom Google Account */
                     <form onSubmit={handleAddCustomGoogleAccount} className="space-y-4">
                       <div className="space-y-1">
-                        <h2 className="text-lg font-medium text-white">Sign in</h2>
-                        <p className="text-xs text-[#8e918f]">with your Google Account</p>
+                        <h2 className="text-base font-medium text-gray-900 dark:text-white">Sign in</h2>
+                        <p className="text-xs text-gray-500 dark:text-[#8e918f]">with your Google Account</p>
                       </div>
                       <div>
-                        <label className="block text-xs text-[#c4c7c5] mb-1">Email or phone</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-[#c4c7c5] mb-1">
+                          Email or phone
+                        </label>
                         <input
                           type="email"
                           required
@@ -949,30 +1126,32 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                           placeholder="name@gmail.com"
                           value={newGoogleEmail}
                           onChange={(e) => setNewGoogleEmail(e.target.value)}
-                          className="w-full py-2.5 px-3 bg-transparent border border-[#8e918f] rounded-lg text-sm text-white focus:outline-hidden focus:border-[#a8c7fa]"
+                          className="w-full py-2.5 px-3 bg-transparent border border-gray-300 dark:border-[#8e918f] rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#0b57d0] dark:focus:border-[#a8c7fa]"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-[#c4c7c5] mb-1">Your Name</label>
+                        <label className="block text-xs font-medium text-gray-700 dark:text-[#c4c7c5] mb-1">
+                          Your Name
+                        </label>
                         <input
                           type="text"
                           placeholder="e.g. Srijesh"
                           value={newGoogleName}
                           onChange={(e) => setNewGoogleName(e.target.value)}
-                          className="w-full py-2.5 px-3 bg-transparent border border-[#8e918f] rounded-lg text-sm text-white focus:outline-hidden focus:border-[#a8c7fa]"
+                          className="w-full py-2.5 px-3 bg-transparent border border-gray-300 dark:border-[#8e918f] rounded-lg text-sm text-gray-900 dark:text-white focus:outline-hidden focus:border-[#0b57d0] dark:focus:border-[#a8c7fa]"
                         />
                       </div>
                       <div className="flex items-center justify-between pt-4">
                         <button
                           type="button"
-                          onClick={() => setShowAddGoogleAccount(false)}
-                          className="text-xs text-[#a8c7fa] hover:underline cursor-pointer"
+                          onClick={() => setGoogleAuthStep('chooser')}
+                          className="text-xs text-[#0b57d0] dark:text-[#a8c7fa] hover:underline cursor-pointer"
                         >
                           Back to accounts
                         </button>
                         <button
                           type="submit"
-                          className="py-2 px-6 bg-[#a8c7fa] hover:bg-[#b8d4fa] text-[#062e6f] font-semibold text-xs rounded-full cursor-pointer transition-colors"
+                          className="py-2 px-6 bg-[#0b57d0] hover:bg-[#0842a0] dark:bg-[#a8c7fa] dark:hover:bg-[#b8d4fa] text-white dark:text-[#062e6f] font-semibold text-xs rounded-full cursor-pointer transition-colors shadow-xs"
                         >
                           Next
                         </button>
@@ -984,15 +1163,15 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             </div>
 
             {/* Bottom Footer links */}
-            <div className="flex items-center justify-between px-3 text-xs text-[#8e918f]">
-              <div className="flex items-center space-x-1 cursor-pointer hover:text-[#c4c7c5]">
+            <div className="flex items-center justify-between px-3 text-xs text-gray-500 dark:text-[#8e918f]">
+              <div className="flex items-center space-x-1 cursor-pointer hover:text-gray-700 dark:hover:text-[#c4c7c5]">
                 <span>English (United States)</span>
                 <span className="text-[9px]">▼</span>
               </div>
               <div className="flex items-center space-x-6">
-                <span className="hover:text-[#c4c7c5] cursor-pointer">Help</span>
-                <span className="hover:text-[#c4c7c5] cursor-pointer">Privacy</span>
-                <span className="hover:text-[#c4c7c5] cursor-pointer">Terms</span>
+                <span className="hover:text-gray-700 dark:hover:text-[#c4c7c5] cursor-pointer">Help</span>
+                <span className="hover:text-gray-700 dark:hover:text-[#c4c7c5] cursor-pointer">Privacy</span>
+                <span className="hover:text-gray-700 dark:hover:text-[#c4c7c5] cursor-pointer">Terms</span>
               </div>
             </div>
           </div>
