@@ -101,7 +101,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   // Profile setup state (for new accounts)
   const [fullName, setFullName] = useState('');
   const [aboutStatus, setAboutStatus] = useState('Hey there! I am using WhatsApp.');
-  const [avatarSeed, setAvatarSeed] = useState(Math.random().toString(36).substring(2, 7));
+  const [avatarSeed, setAvatarSeed] = useState(() => Math.random().toString(36).substring(2, 7));
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
